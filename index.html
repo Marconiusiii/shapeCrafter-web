@@ -28,17 +28,13 @@
 <div class="site-header__brand">
 <a href="https://blindsvg.com/" class="site-logo-link">
 <svg viewBox="0 0 100 100" width="72" height="72">
-<title>BlindSVG logo</title>
+<title>BlindSVG Home Logo; a teal triangle inside of a yellow square outline inside of an orange circle outline.</title>
 <circle cx="50" cy="50" r="20" stroke="orange" stroke-width="4" fill="none"/>
 <rect x="35" y="35" width="30" height="30" stroke="yellow" stroke-width="4" fill="none"/>
 <polygon points="50,40 40,60 60,60" stroke="white" stroke-width="4" fill="teal"/>
 </svg>
 <span>BlindSVG</span>
 </a>
-<div>
-<p class="site-title">shapeCrafter Web</p>
-<p class="site-subtitle">Write SVG, render it instantly, and print tactile-ready output from the browser.</p>
-</div>
 </div>
 
 <nav class="site-header__nav">
@@ -48,11 +44,10 @@
 </header>
 
 <main id="mainContent">
-<section class="intro">
+<section class="intro" id="homeView">
 <h1>shapeCrafter Web</h1>
-<p>shapeCrafter is a browser-based SVG editor for BlindSVG learners and creators who want a clean, accessible place to hand-code graphics, preview the result, and move quickly to embossing or print output.</p>
-<p>Start a new SVG file, write or insert SVG elements in the editor, switch to the render view to inspect the result, and print only the graphic when you are ready.</p>
-<p>The editor is built around plain HTML controls and keyboard use. Screen reader users should be able to work through the full flow without depending on custom widgets.</p>
+<p>shapeCrafter gives you a place to create hand-coded SVG graphics, render them instantly in the browser, and move directly to print or export.</p>
+<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print only the artwork.</p>
 <div class="action-row">
 <button type="button" id="newFileButton">New File</button>
 <button type="button" id="openShortcutsButton">Keyboard Shortcuts</button>
@@ -63,8 +58,8 @@
 <div class="details-body">
 <p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu.</p>
 <p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the caret to a specific line in the code.</p>
-<p>Saved files stay in this browser using local storage until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
-<p>For embossing or tactile print workflows, choose Print from the render view. The print stylesheet hides the app chrome so the browser prints only the rendered SVG.</p>
+<p>Saved files stay in this browser until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
+<p>For embossing or tactile print workflows, choose Print from the render view so the browser prints only the rendered SVG.</p>
 </div>
 </details>
 
@@ -77,47 +72,46 @@
 </details>
 </section>
 
-<section id="workspaceSection" hidden>
-<div id="editorView">
+<section id="workspaceSection" hidden inert>
+<div id="editorView" hidden inert>
 <div class="workspace-header">
 <div>
-<h2 id="currentFileHeading">Untitled</h2>
+<h1 id="currentFileHeading">Untitled</h1>
 <p id="fileMeta">No file open.</p>
-</div>
-<div class="action-row">
-<button type="button" id="saveButton">Save to Browser</button>
-<button type="button" id="downloadButton">Download SVG</button>
-<button type="button" id="jumpToLineButton">Jump to Line</button>
-<button type="button" id="renderButton">Render SVG</button>
 </div>
 </div>
 
 <div class="workspace-grid">
 <aside class="primitive-panel">
-<h3>Add SVG Elements</h3>
+<details>
+<summary>Add SVG Elements</summary>
 <p>Choose a primitive to insert code at the current caret position in the editor.</p>
-<label class="toggle-row">
+<div class="toggle-row">
 <input type="checkbox" id="attributePromptToggle">
-<span>Prompt for attributes before inserting a shape</span>
-</label>
+<label for="attributePromptToggle">Prompt for attributes before inserting a shape</label>
+</div>
 <ul id="primitiveList" class="primitive-list"></ul>
+</details>
 </aside>
 
-<section class="editor-panel">
+<section class="editor-panel" aria-label="SVG Editor">
+<h2>SVG Editor</h2>
 <label for="svgEditor">SVG Code</label>
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
+<div class="action-row">
+<button type="button" id="renderButton">Render SVG</button>
+<button type="button" id="jumpToLineButton">Jump to Line</button>
+<button type="button" id="saveButton">Save to Browser</button>
+<button type="button" id="downloadButton">Download SVG</button>
+</div>
 <p id="statusMessage" class="status-message"></p>
 <section id="errorPanel" hidden>
 <h3>Rendering Error</h3>
 <p id="errorMessage"></p>
 </section>
-<section id="shortcutSummary">
-<h3>Current Shortcut</h3>
-<p id="jumpShortcutSummary">Jump to Line: Alt+Shift+J</p>
-</section>
 </section>
 <section class="preview-panel">
-<h3>Quick Notes</h3>
+<h2>Quick Notes</h2>
 <ul>
 <li>SVG width and height should match your intended output size.</li>
 <li>Leave fill blank in the attribute prompt to insert <code>fill="none"</code>.</li>
@@ -129,10 +123,10 @@
 </div>
 </div>
 
-<div id="renderView" hidden>
+<div id="renderView" hidden inert>
 <div class="workspace-header">
 <div>
-<h2>Rendered SVG</h2>
+<h1 id="renderViewHeading">Rendered SVG</h1>
 <p id="renderMeta">Rendered output ready for print or export.</p>
 </div>
 <div class="action-row non-printing">
@@ -153,25 +147,25 @@
 
 <dialog id="newFileDialog">
 <form method="dialog" id="newFileForm">
-<h2>Create a New SVG File</h2>
+<h2 id="newFileDialogHeading" tabindex="-1">Create a New SVG File</h2>
 <p>Enter the file details that shapeCrafter should use to generate your opening SVG tag and title tag.</p>
 
 <label for="fileNameInput">Filename</label>
 <input id="fileNameInput" name="filename" type="text" required>
 
 <label for="viewBoxInput">viewBox</label>
-<input id="viewBoxInput" name="viewbox" type="text" value="0 0 500 500" required>
+<input id="viewBoxInput" name="viewbox" type="text" value="0 0 850 1100" required>
 
 <details>
 <summary>What should go in viewBox?</summary>
-<p>Use four numbers separated by spaces. A common starting point is <code>0 0 500 500</code>, which sets the x origin, y origin, width, and height of the SVG drawing space.</p>
+<p>Use four numbers separated by spaces. A common starting point is <code>0 0 850 1100</code>, which sets the x origin, y origin, width, and height of the SVG drawing space.</p>
 </details>
 
 <label for="svgWidthInput">Width</label>
-<input id="svgWidthInput" name="width" type="text" value="500" required>
+<input id="svgWidthInput" name="width" type="text" value="850" required>
 
 <label for="svgHeightInput">Height</label>
-<input id="svgHeightInput" name="height" type="text" value="500" required>
+<input id="svgHeightInput" name="height" type="text" value="1100" required>
 
 <menu>
 <button type="button" data-close-dialog="newFileDialog">Cancel</button>
@@ -182,7 +176,7 @@
 
 <dialog id="shapeDialog">
 <form method="dialog" id="shapeForm">
-<h2 id="shapeDialogTitle">Add Shape</h2>
+<h2 id="shapeDialogTitle" tabindex="-1">Add Shape</h2>
 <p id="shapeDialogDescription">Enter the attributes for the selected SVG primitive.</p>
 <div id="shapeFieldContainer" class="modal-fields"></div>
 <menu>
@@ -194,7 +188,7 @@
 
 <dialog id="jumpDialog">
 <form method="dialog" id="jumpForm">
-<h2>Jump to Line</h2>
+<h2 id="jumpDialogHeading" tabindex="-1">Jump to Line</h2>
 <p>Enter a line number in the editor.</p>
 <label for="jumpLineInput">Line Number</label>
 <input id="jumpLineInput" name="line" type="number" min="1" required>
@@ -207,8 +201,8 @@
 
 <dialog id="shortcutsDialog">
 <form method="dialog" id="shortcutsForm">
-<h2>Keyboard Shortcuts</h2>
-<p>Choose the key combination for Jump to Line. The default is selected to avoid common browser shortcuts, but you can remap it for your setup.</p>
+<h2 id="shortcutsDialogHeading" tabindex="-1">Keyboard Shortcuts</h2>
+<p>Choose the key combination for Jump to Line.</p>
 <label for="shortcutModifierInput">Modifier Keys</label>
 <select id="shortcutModifierInput" name="modifiers">
 <option value="Alt+Shift">Alt+Shift</option>
@@ -230,7 +224,7 @@
 
 <dialog id="exportDialog">
 <form method="dialog" id="exportForm">
-<h2>Export Raster</h2>
+<h2 id="exportDialogHeading" tabindex="-1">Export Raster</h2>
 <p>Choose the output format, pixel size, and DPI for the raster export.</p>
 
 <label for="exportTypeInput">File Type</label>

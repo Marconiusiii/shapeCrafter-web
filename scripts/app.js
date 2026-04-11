@@ -1,5 +1,6 @@
 const STORAGE_KEY = "shapeCrafter.files";
 const SHORTCUTS_KEY = "shapeCrafter.shortcuts";
+const BASE_TITLE = "shapeCrafter - BlindSVG";
 
 const PRIMITIVES = [
   {
@@ -54,14 +55,18 @@ const state = {
   files: [],
   lastFocusedTrigger: null,
   pendingPrimitive: null,
+  pendingFocusTarget: null,
+  shouldRestoreFocus: true,
   shortcuts: loadShortcuts()
 };
 
 const elements = {
+  homeView: document.getElementById("homeView"),
   workspaceSection: document.getElementById("workspaceSection"),
   editorView: document.getElementById("editorView"),
   renderView: document.getElementById("renderView"),
   renderCanvas: document.getElementById("renderCanvas"),
+  renderViewHeading: document.getElementById("renderViewHeading"),
   renderMeta: document.getElementById("renderMeta"),
   currentFileHeading: document.getElementById("currentFileHeading"),
   fileMeta: document.getElementById("fileMeta"),
@@ -71,11 +76,11 @@ const elements = {
   errorMessage: document.getElementById("errorMessage"),
   fileList: document.getElementById("fileList"),
   fileLibrarySummary: document.getElementById("fileLibrarySummary"),
-  jumpShortcutSummary: document.getElementById("jumpShortcutSummary"),
   attributePromptToggle: document.getElementById("attributePromptToggle"),
   primitiveList: document.getElementById("primitiveList"),
   newFileDialog: document.getElementById("newFileDialog"),
   newFileForm: document.getElementById("newFileForm"),
+  newFileDialogHeading: document.getElementById("newFileDialogHeading"),
   fileNameInput: document.getElementById("fileNameInput"),
   viewBoxInput: document.getElementById("viewBoxInput"),
   svgWidthInput: document.getElementById("svgWidthInput"),
@@ -87,11 +92,14 @@ const elements = {
   shapeSubmitButton: document.getElementById("shapeSubmitButton"),
   jumpDialog: document.getElementById("jumpDialog"),
   jumpForm: document.getElementById("jumpForm"),
+  jumpDialogHeading: document.getElementById("jumpDialogHeading"),
   jumpLineInput: document.getElementById("jumpLineInput"),
   shortcutsDialog: document.getElementById("shortcutsDialog"),
+  shortcutsDialogHeading: document.getElementById("shortcutsDialogHeading"),
   shortcutModifierInput: document.getElementById("shortcutModifierInput"),
   shortcutKeyInput: document.getElementById("shortcutKeyInput"),
   exportDialog: document.getElementById("exportDialog"),
+  exportDialogHeading: document.getElementById("exportDialogHeading"),
   exportForm: document.getElementById("exportForm"),
   exportTypeInput: document.getElementById("exportTypeInput"),
   exportWidthInput: document.getElementById("exportWidthInput"),
@@ -103,8 +111,7 @@ document.getElementById("copyrightYear").textContent = new Date().getFullYear();
 
 document.getElementById("newFileButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
-  elements.newFileDialog.showModal();
-  elements.fileNameInput.focus();
+  openDialog(elements.newFileDialog, elements.newFileDialogHeading);
 });
 
 document.getElementById("openShortcutsButton").addEventListener("click", (event) => {
@@ -120,13 +127,12 @@ document.getElementById("returnToCodeButton").addEventListener("click", returnTo
 document.getElementById("printButton").addEventListener("click", () => window.print());
 document.getElementById("jumpToLineButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
-  elements.jumpDialog.showModal();
-  elements.jumpLineInput.focus();
+  openDialog(elements.jumpDialog, elements.jumpDialogHeading);
 });
 document.getElementById("exportRasterButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
   syncExportDimensionsFromSvg();
-  elements.exportDialog.showModal();
+  openDialog(elements.exportDialog, elements.exportDialogHeading);
 });
 document.getElementById("resetShortcutButton").addEventListener("click", () => {
   state.shortcuts = { ...defaultShortcut };
@@ -136,8 +142,7 @@ document.getElementById("resetShortcutButton").addEventListener("click", () => {
 document.querySelectorAll("[data-close-dialog]").forEach((button) => {
   button.addEventListener("click", () => {
     const dialog = document.getElementById(button.dataset.closeDialog);
-    dialog.close();
-    restoreFocus();
+    closeDialog(dialog);
   });
 });
 
@@ -151,13 +156,13 @@ elements.newFileForm.addEventListener("submit", (event) => {
   state.files = upsertFile(file);
   state.currentFileId = file.id;
   elements.svgEditor.value = file.content;
-  elements.workspaceSection.hidden = false;
+  setActiveView("editor");
   updateWorkspaceMeta(file);
   persistFiles();
   renderFileList();
   clearMessages();
   setStatus(`Created ${file.name}.`);
-  elements.newFileDialog.close();
+  closeDialog(elements.newFileDialog, { restoreFocus: false });
   focusEditorLine(3);
 });
 
@@ -171,7 +176,7 @@ elements.shapeForm.addEventListener("submit", (event) => {
   const fieldValues = new FormData(elements.shapeForm);
   const markup = buildPrimitiveMarkup(primitive, fieldValues);
   insertAtCursor(markup);
-  elements.shapeDialog.close();
+  closeDialog(elements.shapeDialog, { restoreFocus: false });
   setStatus(`Inserted <${primitive.name}>.`);
   focusEditorOnInsertedMarkup(markup);
 });
@@ -179,21 +184,19 @@ elements.shapeForm.addEventListener("submit", (event) => {
 elements.jumpForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const line = Number(elements.jumpLineInput.value);
-  elements.jumpDialog.close();
+  closeDialog(elements.jumpDialog, { restoreFocus: false });
   focusEditorLine(line);
 });
 
-elements.shortcutsDialog.addEventListener("close", restoreFocus);
-elements.newFileDialog.addEventListener("close", restoreFocus);
-elements.shapeDialog.addEventListener("close", restoreFocus);
-elements.jumpDialog.addEventListener("close", restoreFocus);
-elements.exportDialog.addEventListener("close", restoreFocus);
+[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.exportDialog].forEach((dialog) => {
+  dialog.addEventListener("close", handleDialogClose);
+});
 
 elements.exportForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     await exportRaster();
-    elements.exportDialog.close();
+    closeDialog(elements.exportDialog);
     setStatus("Raster export downloaded.");
   } catch (error) {
     setStatus(error.message);
@@ -207,8 +210,7 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
     key: elements.shortcutKeyInput.value.trim().toUpperCase() || defaultShortcut.key
   };
   localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(state.shortcuts));
-  updateShortcutSummary();
-  elements.shortcutsDialog.close();
+  closeDialog(elements.shortcutsDialog);
   setStatus(`Jump to Line shortcut saved as ${describeShortcut(state.shortcuts)}.`);
 });
 
@@ -221,19 +223,50 @@ document.addEventListener("keydown", (event) => {
   if (matchesShortcut(event, state.shortcuts)) {
     event.preventDefault();
     state.lastFocusedTrigger = document.activeElement;
-    elements.jumpDialog.showModal();
-    elements.jumpLineInput.focus();
+    openDialog(elements.jumpDialog, elements.jumpDialogHeading);
   }
 });
 
 initPrimitiveList();
 renderFileList();
-updateShortcutSummary();
+setActiveView("home");
 
 function openShortcutsDialog() {
   syncShortcutInputs();
-  elements.shortcutsDialog.showModal();
-  elements.shortcutModifierInput.focus();
+  openDialog(elements.shortcutsDialog, elements.shortcutsDialogHeading);
+}
+
+function openDialog(dialog, focusTarget) {
+  state.pendingFocusTarget = null;
+  state.shouldRestoreFocus = true;
+  dialog.showModal();
+  updateDocumentTitle({ dialog: dialog.id });
+  requestAnimationFrame(() => {
+    focusTarget.focus();
+  });
+}
+
+function closeDialog(dialog, options = {}) {
+  state.shouldRestoreFocus = options.restoreFocus !== false;
+  state.pendingFocusTarget = options.nextFocusTarget || null;
+  dialog.close();
+}
+
+function handleDialogClose() {
+  if (state.pendingFocusTarget) {
+    requestAnimationFrame(() => {
+      state.pendingFocusTarget.focus();
+      state.pendingFocusTarget = null;
+    });
+    updateDocumentTitle();
+    return;
+  }
+
+  if (state.shouldRestoreFocus) {
+    restoreFocus();
+  }
+
+  updateDocumentTitle();
 }
 
 function syncShortcutInputs() {
@@ -289,11 +322,7 @@ function openShapeDialog(primitive) {
     elements.shapeFieldContainer.appendChild(wrapper);
   });
 
-  elements.shapeDialog.showModal();
-  const firstField = elements.shapeFieldContainer.querySelector("input");
-  if (firstField) {
-    firstField.focus();
-  }
+  openDialog(elements.shapeDialog, elements.shapeDialogTitle);
 }
 
 function createFileRecord(name, viewBox, width, height) {
@@ -412,7 +441,9 @@ function focusEditorLine(lineNumber) {
 
 function updateWorkspaceMeta(file) {
   elements.currentFileHeading.textContent = file.name;
-  elements.fileMeta.textContent = `viewBox ${file.viewBox} | ${file.width} by ${file.height} | Updated ${formatDate(file.updatedAt)}`;
+  elements.renderViewHeading.textContent = `${file.name} Print View`;
+  elements.fileMeta.textContent = `Updated ${formatDate(file.updatedAt)}`;
+  updateDocumentTitle();
 }
 
 function formatDate(isoString) {
@@ -474,9 +505,7 @@ function openFile(fileId) {
   }
 
   state.currentFileId = file.id;
-  elements.workspaceSection.hidden = false;
-  elements.renderView.hidden = true;
-  elements.editorView.hidden = false;
+  setActiveView("editor");
   elements.svgEditor.value = file.content;
   updateWorkspaceMeta(file);
   clearMessages();
@@ -528,6 +557,10 @@ function deleteFile(fileId) {
     state.currentFileId = "";
     elements.currentFileHeading.textContent = "Untitled";
     elements.fileMeta.textContent = "No file open.";
+    elements.renderViewHeading.textContent = "Rendered SVG";
+    elements.svgEditor.value = "";
+    elements.renderCanvas.replaceChildren();
+    setActiveView("home");
   }
 
   renderFileList();
@@ -542,7 +575,7 @@ function saveCurrentFile() {
 
   let file = state.currentFileId ? loadFiles().find((item) => item.id === state.currentFileId) : null;
   if (!file) {
-    file = createFileRecord("untitled", "0 0 500 500", "500", "500");
+    file = createFileRecord("untitled", "0 0 850 1100", "850", "1100");
     state.currentFileId = file.id;
   }
 
@@ -623,17 +656,32 @@ function renderSvg() {
   elements.errorPanel.hidden = true;
   elements.errorMessage.textContent = "";
   elements.renderCanvas.replaceChildren(svg.cloneNode(true));
-  elements.editorView.hidden = true;
-  elements.renderView.hidden = false;
+  setActiveView("render");
   elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
   elements.renderCanvas.focus();
   setStatus("SVG rendered.");
 }
 
 function returnToEditor() {
-  elements.renderView.hidden = true;
-  elements.editorView.hidden = false;
+  setActiveView("editor");
   elements.svgEditor.focus();
+}
+
+function setActiveView(viewName) {
+  syncRegion(elements.homeView, viewName === "home");
+  syncRegion(elements.workspaceSection, viewName === "editor" || viewName === "render");
+  syncRegion(elements.editorView, viewName === "editor");
+  syncRegion(elements.renderView, viewName === "render");
+  updateDocumentTitle({ view: viewName });
+}
+
+function syncRegion(element, isActive) {
+  element.hidden = !isActive;
+  if (isActive) {
+    element.removeAttribute("inert");
+  } else {
+    element.setAttribute("inert", "");
+  }
 }
 
 function downloadSvg() {
@@ -772,12 +820,60 @@ function loadShortcuts() {
   }
 }
 
-function updateShortcutSummary() {
-  elements.jumpShortcutSummary.textContent = `Jump to Line: ${describeShortcut(state.shortcuts)}`;
-}
-
 function describeShortcut(shortcut) {
   return `${shortcut.modifiers}+${shortcut.key.toUpperCase()}`;
+}
+
+function updateDocumentTitle(stateOverride = {}) {
+  const activeDialog = stateOverride.dialog || getOpenDialogId();
+  if (activeDialog === "newFileDialog") {
+    document.title = `Making New File - ${BASE_TITLE}`;
+    return;
+  }
+
+  const currentFile = getCurrentFile();
+  const filename = currentFile ? currentFile.name : "shapeCrafter";
+  const activeView = stateOverride.view || getActiveView();
+
+  if (activeView === "render" && currentFile) {
+    document.title = `${filename} Print View - ${BASE_TITLE}`;
+    return;
+  }
+
+  if (activeView === "editor" && currentFile) {
+    document.title = `${filename} Editor - ${BASE_TITLE}`;
+    return;
+  }
+
+  document.title = BASE_TITLE;
+}
+
+function getActiveView() {
+  if (!elements.renderView.hidden) {
+    return "render";
+  }
+
+  if (!elements.editorView.hidden) {
+    return "editor";
+  }
+
+  return "home";
+}
+
+function getOpenDialogId() {
+  const dialogs = [
+    elements.newFileDialog,
+    elements.shapeDialog,
+    elements.jumpDialog,
+    elements.shortcutsDialog,
+    elements.exportDialog
+  ];
+  const openDialog = dialogs.find((dialog) => dialog.open);
+  return openDialog ? openDialog.id : "";
+}
+
+function getCurrentFile() {
+  return loadFiles().find((item) => item.id === state.currentFileId) || null;
 }
 
 function matchesShortcut(event, shortcut) {
