@@ -72,6 +72,7 @@ const elements = {
   fileMeta: document.getElementById("fileMeta"),
   svgEditor: document.getElementById("svgEditor"),
   statusMessage: document.getElementById("statusMessage"),
+  editorAnnouncer: document.getElementById("editorAnnouncer"),
   errorPanel: document.getElementById("errorPanel"),
   errorMessage: document.getElementById("errorMessage"),
   fileList: document.getElementById("fileList"),
@@ -217,6 +218,19 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
 elements.svgEditor.addEventListener("input", () => {
   clearMessages();
   updateCurrentFileContent(elements.svgEditor.value);
+});
+
+elements.svgEditor.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "]") {
+    event.preventDefault();
+    indentSelection();
+    return;
+  }
+
+  if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "[") {
+    event.preventDefault();
+    outdentSelection();
+  }
 });
 
 document.addEventListener("keydown", (event) => {
@@ -380,7 +394,7 @@ function buildPrimitiveMarkup(primitive, values = null) {
 
     if (primitive.name === "text") {
       const content = String(values.get("content") || "").trim();
-      return `  <text ${attributes.filter((attribute) => !attribute.startsWith("content=")).join(" ")}>${escapeXml(content)}</text>\n`;
+      return `<text ${attributes.filter((attribute) => !attribute.startsWith("content=")).join(" ")}>${escapeXml(content)}</text>\n`;
     }
   } else {
     primitive.required.forEach((attribute) => {
@@ -397,11 +411,11 @@ function buildPrimitiveMarkup(primitive, values = null) {
     });
 
     if (primitive.name === "text") {
-      return `  <text ${attributes.join(" ")}>Text</text>\n`;
+      return `<text ${attributes.join(" ")}>Text</text>\n`;
     }
   }
 
-  return `  <${primitive.name}${attributes.length ? ` ${attributes.join(" ")}` : ""}></${primitive.name}>\n`;
+  return `<${primitive.name}${attributes.length ? ` ${attributes.join(" ")}` : ""}></${primitive.name}>\n`;
 }
 
 function insertAtCursor(markup) {
@@ -447,7 +461,18 @@ function updateWorkspaceMeta(file) {
 }
 
 function formatDate(isoString) {
-  return new Date(isoString).toLocaleString();
+  const date = new Date(isoString);
+  const datePart = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  }).format(date);
+  const timePart = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  }).format(date).replace(/\s/g, "");
+  return `${datePart}, ${timePart}`;
 }
 
 function renderFileList() {
@@ -510,7 +535,7 @@ function openFile(fileId) {
   updateWorkspaceMeta(file);
   clearMessages();
   setStatus(`Opened ${file.name}.`);
-  elements.svgEditor.focus();
+  focusActiveHeading(elements.currentFileHeading);
 }
 
 function renameFile(fileId) {
@@ -658,13 +683,13 @@ function renderSvg() {
   elements.renderCanvas.replaceChildren(svg.cloneNode(true));
   setActiveView("render");
   elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
-  elements.renderCanvas.focus();
+  focusActiveHeading(elements.renderViewHeading);
   setStatus("SVG rendered.");
 }
 
 function returnToEditor() {
   setActiveView("editor");
-  elements.svgEditor.focus();
+  focusActiveHeading(elements.currentFileHeading);
 }
 
 function setActiveView(viewName) {
@@ -874,6 +899,86 @@ function getOpenDialogId() {
 
 function getCurrentFile() {
   return loadFiles().find((item) => item.id === state.currentFileId) || null;
+}
+
+function focusActiveHeading(heading) {
+  requestAnimationFrame(() => {
+    heading.setAttribute("tabindex", "-1");
+    heading.focus();
+  });
+}
+
+function indentSelection() {
+  const editor = elements.svgEditor;
+  const { value, selectionStart, selectionEnd } = editor;
+  const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+  const lineEnd = value.indexOf("\n", selectionEnd);
+  const blockEnd = lineEnd === -1 ? value.length : lineEnd;
+  const selectionText = value.slice(lineStart, selectionEnd);
+  const endsAtLineStart = selectionEnd > lineStart && value[selectionEnd - 1] === "\n";
+  const selectedLines = selectionText.split("\n");
+  const lineCount = endsAtLineStart ? Math.max(selectedLines.length - 1, 1) : selectedLines.length;
+  const targetLineCount = Math.max(lineCount, 1);
+  const blockText = value.slice(lineStart, blockEnd);
+  const updatedBlock = blockText
+    .split("\n")
+    .map((line, index) => (index < targetLineCount ? `\t${line}` : line))
+    .join("\n");
+  const nextValue = value.slice(0, lineStart) + updatedBlock + value.slice(blockEnd);
+
+  editor.value = nextValue;
+  editor.selectionStart = selectionStart + 1;
+  editor.selectionEnd = selectionEnd + targetLineCount;
+  updateCurrentFileContent(nextValue);
+  editor.focus();
+  announceEditorChange(targetLineCount === 1 ? "Indented 1 tab" : `Indented ${targetLineCount} tabs`);
+}
+
+function outdentSelection() {
+  const editor = elements.svgEditor;
+  const { value, selectionStart, selectionEnd } = editor;
+  const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+  const lineEnd = value.indexOf("\n", selectionEnd);
+  const blockEnd = lineEnd === -1 ? value.length : lineEnd;
+  const selectionText = value.slice(lineStart, selectionEnd);
+  const endsAtLineStart = selectionEnd > lineStart && value[selectionEnd - 1] === "\n";
+  const selectedLines = selectionText.split("\n");
+  const lineCount = endsAtLineStart ? Math.max(selectedLines.length - 1, 1) : selectedLines.length;
+  const targetLineCount = Math.max(lineCount, 1);
+  const blockText = value.slice(lineStart, blockEnd);
+  const blockLines = blockText.split("\n");
+  let removedTabs = 0;
+  let removedFromFirstLine = 0;
+
+  for (let i = 0; i < targetLineCount; i += 1) {
+    if (blockLines[i].startsWith("\t")) {
+      blockLines[i] = blockLines[i].slice(1);
+      removedTabs += 1;
+      if (i === 0) {
+        removedFromFirstLine = 1;
+      }
+    }
+  }
+
+  const nextValue = value.slice(0, lineStart) + blockLines.join("\n") + value.slice(blockEnd);
+  const nextSelectionStart = Math.max(lineStart, selectionStart - removedFromFirstLine);
+  editor.value = nextValue;
+  editor.selectionStart = nextSelectionStart;
+  editor.selectionEnd = Math.max(nextSelectionStart, selectionEnd - removedTabs);
+  updateCurrentFileContent(nextValue);
+  editor.focus();
+
+  const currentLine = blockLines[0] || "";
+  const levelMatch = currentLine.match(/^\t*/);
+  const level = levelMatch ? levelMatch[0].length : 0;
+  announceEditorChange(`Outdented to Level ${level}`);
+}
+
+function announceEditorChange(message) {
+  elements.editorAnnouncer.textContent = "";
+  requestAnimationFrame(() => {
+    elements.editorAnnouncer.textContent = message;
+  });
 }
 
 function matchesShortcut(event, shortcut) {
