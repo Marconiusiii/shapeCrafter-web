@@ -70,6 +70,8 @@ const elements = {
   renderMeta: document.getElementById("renderMeta"),
   currentFileHeading: document.getElementById("currentFileHeading"),
   fileMeta: document.getElementById("fileMeta"),
+  renameCurrentFileButton: document.getElementById("renameCurrentFileButton"),
+  deleteCurrentFileButton: document.getElementById("deleteCurrentFileButton"),
   svgEditor: document.getElementById("svgEditor"),
   statusMessage: document.getElementById("statusMessage"),
   editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -123,9 +125,21 @@ document.getElementById("openShortcutsButton").addEventListener("click", (event)
 document.getElementById("saveButton").addEventListener("click", saveCurrentFile);
 document.getElementById("saveFromRenderButton").addEventListener("click", saveCurrentFile);
 document.getElementById("downloadButton").addEventListener("click", downloadSvg);
+document.getElementById("backToHomeFromEditorButton").addEventListener("click", returnHome);
+document.getElementById("backToHomeFromRenderButton").addEventListener("click", returnHome);
 document.getElementById("renderButton").addEventListener("click", renderSvg);
 document.getElementById("returnToCodeButton").addEventListener("click", returnToEditor);
 document.getElementById("printButton").addEventListener("click", () => window.print());
+elements.renameCurrentFileButton.addEventListener("click", () => {
+  if (state.currentFileId) {
+    renameFile(state.currentFileId);
+  }
+});
+elements.deleteCurrentFileButton.addEventListener("click", () => {
+  if (state.currentFileId) {
+    deleteFile(state.currentFileId);
+  }
+});
 document.getElementById("jumpToLineButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
   openDialog(elements.jumpDialog, elements.jumpDialogHeading);
@@ -499,6 +513,8 @@ function updateWorkspaceMeta(file) {
   elements.currentFileHeading.textContent = file.name;
   elements.renderViewHeading.textContent = `${file.name} Print View`;
   elements.fileMeta.textContent = `Updated ${formatDate(file.updatedAt)}`;
+  elements.renameCurrentFileButton.textContent = `Rename ${file.name}`;
+  elements.deleteCurrentFileButton.textContent = `Delete ${file.name}`;
   updateDocumentTitle();
 }
 
@@ -536,29 +552,27 @@ function renderFileList() {
       const item = document.createElement("li");
       item.className = "file-item";
 
-      const title = document.createElement("p");
-      title.textContent = `${file.name} | ${formatDate(file.updatedAt)}`;
+      const openButton = document.createElement("button");
+      openButton.type = "button";
+      openButton.textContent = `${file.name} | ${formatDate(file.updatedAt)}`;
+      openButton.setAttribute("aria-description", "Opens file");
+      openButton.addEventListener("click", () => openFile(file.id));
 
       const actions = document.createElement("div");
       actions.className = "file-actions";
 
-      const openButton = document.createElement("button");
-      openButton.type = "button";
-      openButton.textContent = "Open";
-      openButton.addEventListener("click", () => openFile(file.id));
-
       const renameButton = document.createElement("button");
       renameButton.type = "button";
-      renameButton.textContent = "Rename";
+      renameButton.textContent = `Rename ${file.name}`;
       renameButton.addEventListener("click", () => renameFile(file.id));
 
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
-      deleteButton.textContent = "Delete";
+      deleteButton.textContent = `Delete ${file.name}`;
       deleteButton.addEventListener("click", () => deleteFile(file.id));
 
-      actions.append(openButton, renameButton, deleteButton);
-      item.append(title, actions);
+      actions.append(renameButton, deleteButton);
+      item.append(openButton, actions);
       fragment.appendChild(item);
     });
 
@@ -624,6 +638,8 @@ function deleteFile(fileId) {
     state.currentFileId = "";
     elements.currentFileHeading.textContent = "Untitled";
     elements.fileMeta.textContent = "No file open.";
+    elements.renameCurrentFileButton.textContent = "Rename File";
+    elements.deleteCurrentFileButton.textContent = "Delete File";
     elements.renderViewHeading.textContent = "Rendered SVG";
     elements.svgEditor.value = "";
     elements.renderCanvas.replaceChildren();
@@ -732,6 +748,12 @@ function renderSvg() {
 function returnToEditor() {
   setActiveView("editor");
   focusActiveHeading(elements.currentFileHeading);
+}
+
+function returnHome() {
+  setActiveView("home");
+  clearMessages();
+  document.getElementById("shapeCrafterHomeLink").focus();
 }
 
 function setActiveView(viewName) {
