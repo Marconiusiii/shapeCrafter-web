@@ -1089,19 +1089,41 @@ function parseSvgErrors(rawMessage) {
     .map((line) => line.trim())
     .filter(Boolean);
   const errors = [];
+  const ignoredPatterns = [
+    /^this page contains the following errors:/i,
+    /^below is a rendering of the page up to the first error\./i,
+    /^from line \d+, column \d+;/i,
+    /^parser error/i,
+    /^xml parsing error/i
+  ];
 
   lines.forEach((line) => {
+    const cleaned = line.replace(/\s+/g, " ").trim();
+    if (!cleaned) {
+      return;
+    }
+
+    if (ignoredPatterns.some((pattern) => pattern.test(cleaned))) {
+      return;
+    }
+
     const lineMatch = line.match(/line\s+(\d+)/i);
     const columnMatch = line.match(/column\s+(\d+)/i);
-    const cleaned = line.replace(/\s+/g, " ").trim();
-    if (cleaned.toLowerCase().includes("parsererror")) {
+    const message = normalizeParserMessage(cleaned);
+    if (!message) {
+      return;
+    }
+
+    const previousError = errors[errors.length - 1];
+    if (previousError && !lineMatch && !columnMatch && shouldAppendToPreviousError(message)) {
+      previousError.message = `${previousError.message} ${message}`.trim();
       return;
     }
 
     errors.push({
       line: lineMatch ? Number(lineMatch[1]) : null,
       column: columnMatch ? Number(columnMatch[1]) : null,
-      message: cleaned
+      message
     });
   });
 
@@ -1109,7 +1131,7 @@ function parseSvgErrors(rawMessage) {
     errors.push({
       line: null,
       column: null,
-      message: normalized.replace(/\s+/g, " ").trim()
+      message: "The SVG contains a parsing error that the browser could not fully describe."
     });
   }
 
@@ -1119,7 +1141,12 @@ function parseSvgErrors(rawMessage) {
 function dedupeErrors(errors) {
   const seen = new Set();
   return errors.filter((error) => {
-    const key = `${error.line || ""}-${error.column || ""}-${error.message}`;
+    const normalizedMessage = error.message
+      .replace(/\s+/g, " ")
+      .replace(/^\W+/, "")
+      .trim()
+      .toLowerCase();
+    const key = `${error.line || ""}-${error.column || ""}-${normalizedMessage}`;
     if (seen.has(key)) {
       return false;
     }
@@ -1176,6 +1203,36 @@ function formatErrorItem(error) {
     return `Line ${error.line}${error.column ? `, column ${error.column}` : ""}: ${error.message}`;
   }
   return error.message;
+}
+
+function normalizeParserMessage(message) {
+  const withoutColumnLead = message.replace(/^error on line \d+ at column \d+:\s*/i, "").trim();
+  const withoutLeadingPunctuation = withoutColumnLead.replace(/^[.:;\-]+/, "").trim();
+  if (!withoutLeadingPunctuation) {
+    return "";
+  }
+
+  if (/^attvalue:/i.test(withoutLeadingPunctuation)) {
+    return "Attribute value is not properly closed.";
+  }
+
+  if (/^attributes construct error/i.test(withoutLeadingPunctuation)) {
+    return "An attribute is malformed.";
+  }
+
+  if (/^opening and ending tag mismatch/i.test(withoutLeadingPunctuation)) {
+    return withoutLeadingPunctuation.replace(/\.$/, "");
+  }
+
+  if (/^expected/i.test(withoutLeadingPunctuation)) {
+    return withoutLeadingPunctuation.replace(/\.$/, "");
+  }
+
+  return withoutLeadingPunctuation.replace(/\.$/, "");
+}
+
+function shouldAppendToPreviousError(message) {
+  return /^(expected|opening and ending tag mismatch|entity|extra content|premature end|specification mandates)/i.test(message);
 }
 
 function clearRenderErrors() {
