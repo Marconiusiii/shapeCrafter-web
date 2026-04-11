@@ -6,42 +6,42 @@ const PRIMITIVES = [
   {
     name: "rect",
     required: ["x", "y", "width", "height"],
-    optional: ["stroke", "stroke-width", "fill", "class"]
+    optional: ["stroke", "stroke-width", "fill", "id", "class"]
   },
   {
     name: "circle",
     required: ["cx", "cy", "r"],
-    optional: ["stroke", "stroke-width", "fill", "class"]
+    optional: ["stroke", "stroke-width", "fill", "id", "class"]
   },
   {
     name: "ellipse",
     required: ["cx", "cy", "rx", "ry"],
-    optional: ["stroke", "stroke-width", "fill", "class"]
+    optional: ["stroke", "stroke-width", "fill", "id", "class"]
   },
   {
     name: "line",
     required: ["x1", "y1", "x2", "y2"],
-    optional: ["stroke", "stroke-width", "class"]
+    optional: ["stroke", "stroke-width", "id", "class"]
   },
   {
     name: "polyline",
     required: ["points"],
-    optional: ["stroke", "stroke-width", "fill", "class"]
+    optional: ["stroke", "stroke-width", "fill", "id", "class"]
   },
   {
     name: "polygon",
     required: ["points"],
-    optional: ["stroke", "stroke-width", "fill", "class"]
+    optional: ["stroke", "stroke-width", "fill", "id", "class"]
   },
   {
     name: "path",
     required: ["d"],
-    optional: ["stroke", "stroke-width", "fill", "class"]
+    optional: ["style", "id", "class"]
   },
   {
     name: "text",
     required: ["x", "y", "content"],
-    optional: ["fill", "class"]
+    optional: ["fill", "id", "class"]
   }
 ];
 
@@ -320,8 +320,19 @@ function openShapeDialog(primitive) {
   elements.shapeDialogTitle.textContent = `Add ${primitive.name}`;
   elements.shapeSubmitButton.textContent = `Add ${primitive.name} to Canvas`;
   elements.shapeFieldContainer.replaceChildren();
+  const orderedOptionalAttributes = primitive.optional.slice().sort((left, right) => {
+    if (left === "id" && right === "class") {
+      return -1;
+    }
 
-  [...primitive.required, ...primitive.optional].forEach((attribute) => {
+    if (left === "class" && right === "id") {
+      return 1;
+    }
+
+    return 0;
+  });
+
+  [...primitive.required, ...orderedOptionalAttributes].forEach((attribute) => {
     const wrapper = document.createElement("div");
     wrapper.className = "modal-field";
     const label = document.createElement("label");
@@ -342,8 +353,8 @@ function openShapeDialog(primitive) {
 function createFileRecord(name, viewBox, width, height) {
   const safeName = sanitizeFilename(name || "untitled");
   const content = [
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" width="${width}" height="${height}">`,
-    `  <title>${escapeXml(safeName)}</title>`,
+    `<svg viewBox="${viewBox}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`,
+    `<title>${escapeXml(safeName)}</title>`,
     "",
     "</svg>"
   ].join("\n");
@@ -376,14 +387,28 @@ function buildPrimitiveMarkup(primitive, values = null) {
 
   if (values) {
     primitive.required.forEach((attribute) => {
+      if (primitive.name === "text" && attribute === "content") {
+        return;
+      }
       const value = String(values.get(attribute) || "").trim();
       attributes.push(`${attribute}="${escapeXml(value)}"`);
     });
 
     primitive.optional.forEach((attribute) => {
       const value = String(values.get(attribute) || "").trim();
+      if (attribute === "id" || attribute === "class") {
+        if (value) {
+          attributes.push(`${attribute}="${escapeXml(value)}"`);
+        }
+        return;
+      }
       if (attribute === "fill") {
         attributes.push(`fill="${escapeXml(value || "none")}"`);
+        return;
+      }
+
+      if (attribute === "style") {
+        attributes.push(`style="${escapeXml(value || "stroke: black; stroke-width: 2; fill: none;")}"`);
         return;
       }
 
@@ -396,26 +421,43 @@ function buildPrimitiveMarkup(primitive, values = null) {
       const content = String(values.get("content") || "").trim();
       return `<text ${attributes.filter((attribute) => !attribute.startsWith("content=")).join(" ")}>${escapeXml(content)}</text>\n`;
     }
-  } else {
-    primitive.required.forEach((attribute) => {
-      if (primitive.name === "text" && attribute === "content") {
-        return;
-      }
-      attributes.push(`${attribute}=""`);
-    });
 
-    primitive.optional.forEach((attribute) => {
-      if (attribute === "fill") {
-        attributes.push(`fill="none"`);
-      }
-    });
-
-    if (primitive.name === "text") {
-      return `<text ${attributes.join(" ")}>Text</text>\n`;
-    }
+    return `<${primitive.name}${attributes.length ? ` ${attributes.join(" ")}` : ""} />\n`;
   }
 
-  return `<${primitive.name}${attributes.length ? ` ${attributes.join(" ")}` : ""}></${primitive.name}>\n`;
+  if (primitive.name === "rect") {
+    return `<rect x="0" y="0" width="100" height="100" stroke="black" stroke-width="2" fill="oldLace" />\n`;
+  }
+
+  if (primitive.name === "circle") {
+    return `<circle cx="100" cy="100" r="50" stroke="black" stroke-width="2" fill="oldLace" />\n`;
+  }
+
+  if (primitive.name === "ellipse") {
+    return `<ellipse cx="100" cy="100" rx="25" ry="25" stroke="black" stroke-width="2" fill="oldLace" />\n`;
+  }
+
+  if (primitive.name === "line") {
+    return `<line x1="0" y1="0" x2="100" y2="100" stroke="black" stroke-width="2" />\n`;
+  }
+
+  if (primitive.name === "polyline") {
+    return `<polyline points="" stroke="black" stroke-width="2" fill="oldLace" />\n`;
+  }
+
+  if (primitive.name === "polygon") {
+    return `<polygon points="" stroke="black" stroke-width="2" fill="oldLace" />\n`;
+  }
+
+  if (primitive.name === "path") {
+    return `<path d="" style="stroke: black; stroke-width: 2; fill: none;" />\n`;
+  }
+
+  if (primitive.name === "text") {
+    return `<text x="0" y="0" fill="oldLace">Text</text>\n`;
+  }
+
+  return `<${primitive.name} />\n`;
 }
 
 function insertAtCursor(markup) {
