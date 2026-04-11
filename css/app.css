@@ -11,6 +11,8 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  background: #f3f5f7;
+  color: #111;
 }
 
 #skip-link {
@@ -29,7 +31,7 @@ body {
 main {
   max-width: 84rem;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1.25rem;
 }
 
 .site-header {
@@ -38,6 +40,9 @@ main {
   justify-content: space-between;
   align-items: flex-start;
   flex-wrap: wrap;
+  padding-top: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #111;
 }
 
 .site-header__brand {
@@ -53,9 +58,8 @@ main {
   text-decoration: none;
 }
 
-.site-title,
-.site-subtitle {
-  margin: 0;
+.site-logo-link svg {
+  flex: none;
 }
 
 .site-header__nav,
@@ -64,6 +68,19 @@ main {
   gap: 0.75rem;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.site-header__nav a {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #111;
+  border-radius: 6px;
+  background: #fff;
+  text-decoration: none;
+}
+
+main {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
 }
 
 .intro,
@@ -82,13 +99,21 @@ main {
   justify-content: space-between;
   align-items: flex-start;
   flex-wrap: wrap;
-  margin-top: 2rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.intro {
+  padding: 1.5rem;
+  border: 2px solid #111;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr) minmax(14rem, 18rem);
-  gap: 1rem;
+  grid-template-columns: minmax(15rem, 18rem) minmax(0, 1.5fr) minmax(14rem, 17rem);
+  gap: 1.25rem;
   align-items: start;
 }
 
@@ -97,9 +122,22 @@ main {
 .preview-panel,
 #renderCanvas,
 dialog {
-  border: 1px solid currentColor;
+  border: 2px solid #111;
   border-radius: 8px;
   padding: 1rem;
+  background: #fff;
+}
+
+#workspaceSection {
+  padding: 1.25rem;
+  border: 2px solid #111;
+  border-radius: 8px;
+  background: #e7edf2;
+}
+
+#editorView,
+#renderView {
+  display: block;
 }
 
 .primitive-list,
@@ -126,6 +164,27 @@ dialog {
   margin-top: 1rem;
 }
 
+.primitive-panel details,
+#helpDetails,
+#fileLibraryDetails {
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 0.75rem;
+}
+
+.primitive-panel summary,
+#helpDetails summary,
+#fileLibraryDetails summary {
+  font-weight: 700;
+}
+
+.primitive-panel details[open],
+#helpDetails[open],
+#fileLibraryDetails[open] {
+  background: #fff;
+}
+
 label,
 input,
 select,
@@ -145,6 +204,12 @@ select {
 textarea {
   min-height: 30rem;
   resize: vertical;
+  padding: 1rem;
+  border: 2px solid #111;
+  border-radius: 6px;
+  background: #fcfcfc;
+  line-height: 1.45;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 #statusMessage,
@@ -154,17 +219,74 @@ textarea {
   margin-top: 0.75rem;
 }
 
+#currentFileHeading,
+#renderViewHeading {
+  margin: 0;
+}
+
+#fileMeta,
+#renderMeta {
+  color: #222;
+}
+
+.editor-panel > .action-row,
+.non-printing {
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+
+.editor-panel > .action-row button:first-child,
+.non-printing button:nth-child(2) {
+  background: #111;
+  color: #fff;
+}
+
+button,
+input,
+select,
+textarea {
+  border-radius: 6px;
+}
+
+button {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 2px solid #111;
+  background: #fff;
+  color: #111;
+}
+
+button:hover,
+button:focus,
+.site-header__nav a:hover,
+.site-header__nav a:focus {
+  outline: 3px solid #0a7a7a;
+  outline-offset: 2px;
+}
+
 .status-message:empty {
   display: none;
 }
 
+#statusMessage {
+  min-height: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #0a7a7a;
+  background: #eef8f8;
+}
+
 #errorPanel {
   margin-top: 1rem;
+  padding: 0.75rem;
+  border-left: 4px solid #7a120a;
+  background: #fff1ef;
 }
 
 #renderCanvas {
   min-height: 60vh;
   overflow: auto;
+  padding: 1.5rem;
+  background: #d9e3ea;
 }
 
 #renderCanvas svg {
@@ -172,6 +294,8 @@ textarea {
   max-width: 100%;
   height: auto;
   background: white;
+  margin: 0 auto;
+  box-shadow: 0 0 0 2px #111;
 }
 
 .render-surface {
@@ -181,9 +305,10 @@ textarea {
 .file-item {
   display: grid;
   gap: 0.75rem;
-  border: 1px solid currentColor;
+  border: 1px solid #333;
   border-radius: 8px;
   padding: 0.75rem;
+  background: #fff;
 }
 
 .file-actions {
@@ -198,6 +323,7 @@ textarea {
 
 dialog {
   width: min(38rem, calc(100vw - 2rem));
+  box-shadow: 0 0 0 3px #111;
 }
 
 dialog form {
@@ -230,6 +356,19 @@ menu {
 
 code {
   word-break: break-word;
+  padding: 0.05rem 0.25rem;
+  background: #eef2f5;
+}
+
+.preview-panel ul,
+.primitive-panel ul {
+  margin-bottom: 0;
+}
+
+.site-footer {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+  border-top: 2px solid #111;
 }
 
 .sr-only {
@@ -245,7 +384,20 @@ code {
 }
 
 @media (max-width: 72rem) {
+  main,
+  .site-header,
+  .site-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
   .workspace-grid {
     grid-template-columns: 1fr;
+  }
+
+  #workspaceSection,
+  .intro,
+  #renderCanvas {
+    padding: 1rem;
   }
 }
