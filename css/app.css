@@ -1,0 +1,239 @@
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 1000;
+}
+
+#skip-link:focus {
+  top: 1rem;
+}
+
+.site-header,
+.site-footer,
+main {
+  max-width: 84rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.site-header {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.site-header__brand {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.site-logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.site-title,
+.site-subtitle {
+  margin: 0;
+}
+
+.site-header__nav,
+.action-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.intro,
+#workspaceSection,
+.details-body,
+.primitive-panel,
+.editor-panel,
+.preview-panel,
+#renderView {
+  display: block;
+}
+
+.workspace-header {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr) minmax(14rem, 18rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+.primitive-panel,
+.editor-panel,
+.preview-panel,
+#renderCanvas,
+dialog {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.primitive-list,
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.primitive-list li,
+.file-list li {
+  margin: 0 0 0.75rem;
+}
+
+.primitive-list button,
+.file-actions button {
+  width: 100%;
+}
+
+.toggle-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+label,
+input,
+select,
+textarea,
+button,
+summary {
+  font: inherit;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  max-width: 100%;
+}
+
+textarea {
+  min-height: 30rem;
+  resize: vertical;
+}
+
+#statusMessage,
+#fileMeta,
+#renderMeta,
+#fileLibrarySummary {
+  margin-top: 0.75rem;
+}
+
+.status-message:empty {
+  display: none;
+}
+
+#errorPanel {
+  margin-top: 1rem;
+}
+
+#renderCanvas {
+  min-height: 60vh;
+  overflow: auto;
+}
+
+#renderCanvas svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: white;
+}
+
+.render-surface {
+  min-height: 100%;
+}
+
+.file-item {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.file-actions button {
+  width: auto;
+}
+
+dialog {
+  width: min(38rem, calc(100vw - 2rem));
+}
+
+dialog form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+menu {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.modal-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.modal-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+code {
+  word-break: break-word;
+}
+
+@media (max-width: 72rem) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}

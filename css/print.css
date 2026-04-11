@@ -1,0 +1,33 @@
+body {
+  margin: 0;
+  background: white;
+}
+
+header,
+footer,
+.intro,
+#editorView,
+.non-printing {
+  display: none !important;
+}
+
+main,
+#workspaceSection,
+#renderView,
+#renderCanvas {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#renderCanvas svg {
+  max-width: none;
+  width: auto;
+  height: auto;
+}
+
+@page {
+  margin: 0;
+}

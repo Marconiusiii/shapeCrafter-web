@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>shapeCrafter - BlindSVG</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="keywords" content="SVG, tactile, tactile graphics, tactile art, a11y, blind, blindSVG, marco salsiccia, blind svg, embosser, embossed, swell-form, 3D printing, tactile drawing, accessibility, BlindSVG, design">
+<meta name="description" content="An accessible online SVG coding playground for learning and developing hand-coded tactile graphics.">
+<meta name="author" content="Marco Salsiccia">
+<link rel="stylesheet" type="text/css" href="https://blindsvg.com/css/style.css">
+<link rel="stylesheet" type="text/css" href="css/app.css">
+<link rel="stylesheet" type="text/css" href="css/print.css" media="print">
+<link rel="canonical" href="https://blindsvg.com/shapeCrafter/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="shapeCrafter - BlindSVG">
+<meta property="og:description" content="An accessible online SVG coding playground for learning and developing hand-coded tactile graphics.">
+<meta property="og:url" content="https://blindsvg.com/shapeCrafter/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="shapeCrafter - BlindSVG">
+<meta name="twitter:description" content="An accessible online SVG coding playground for learning and developing hand-coded tactile graphics.">
+<link href="https://blindsvg.com/images/favicon.ico" rel="icon" type="image/x-icon">
+</head>
+
+<body>
+<a href="#mainContent" id="skip-link">Skip to Content</a>
+
+<header class="site-header">
+<div class="site-header__brand">
+<a href="https://blindsvg.com/" class="site-logo-link">
+<svg viewBox="0 0 100 100" width="72" height="72">
+<title>BlindSVG logo</title>
+<circle cx="50" cy="50" r="20" stroke="orange" stroke-width="4" fill="none"/>
+<rect x="35" y="35" width="30" height="30" stroke="yellow" stroke-width="4" fill="none"/>
+<polygon points="50,40 40,60 60,60" stroke="white" stroke-width="4" fill="teal"/>
+</svg>
+<span>BlindSVG</span>
+</a>
+<div>
+<p class="site-title">shapeCrafter Web</p>
+<p class="site-subtitle">Write SVG, render it instantly, and print tactile-ready output from the browser.</p>
+</div>
+</div>
+
+<nav class="site-header__nav">
+<a href="https://blindsvg.com/">Return Home</a>
+<a href="mailto:hello@blindsvg.com">Contact Me</a>
+</nav>
+</header>
+
+<main id="mainContent">
+<section class="intro">
+<h1>shapeCrafter Web</h1>
+<p>shapeCrafter is a browser-based SVG editor for BlindSVG learners and creators who want a clean, accessible place to hand-code graphics, preview the result, and move quickly to embossing or print output.</p>
+<p>Start a new SVG file, write or insert SVG elements in the editor, switch to the render view to inspect the result, and print only the graphic when you are ready.</p>
+<p>The editor is built around plain HTML controls and keyboard use. Screen reader users should be able to work through the full flow without depending on custom widgets.</p>
+<div class="action-row">
+<button type="button" id="newFileButton">New File</button>
+<button type="button" id="openShortcutsButton">Keyboard Shortcuts</button>
+</div>
+
+<details id="helpDetails">
+<summary>Help and Getting Started</summary>
+<div class="details-body">
+<p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu.</p>
+<p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the caret to a specific line in the code.</p>
+<p>Saved files stay in this browser using local storage until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
+<p>For embossing or tactile print workflows, choose Print from the render view. The print stylesheet hides the app chrome so the browser prints only the rendered SVG.</p>
+</div>
+</details>
+
+<details id="fileLibraryDetails">
+<summary>Local Files</summary>
+<div class="details-body">
+<p id="fileLibrarySummary">No saved files yet.</p>
+<ul id="fileList" class="file-list"></ul>
+</div>
+</details>
+</section>
+
+<section id="workspaceSection" hidden>
+<div id="editorView">
+<div class="workspace-header">
+<div>
+<h2 id="currentFileHeading">Untitled</h2>
+<p id="fileMeta">No file open.</p>
+</div>
+<div class="action-row">
+<button type="button" id="saveButton">Save to Browser</button>
+<button type="button" id="downloadButton">Download SVG</button>
+<button type="button" id="jumpToLineButton">Jump to Line</button>
+<button type="button" id="renderButton">Render SVG</button>
+</div>
+</div>
+
+<div class="workspace-grid">
+<aside class="primitive-panel">
+<h3>Add SVG Elements</h3>
+<p>Choose a primitive to insert code at the current caret position in the editor.</p>
+<label class="toggle-row">
+<input type="checkbox" id="attributePromptToggle">
+<span>Prompt for attributes before inserting a shape</span>
+</label>
+<ul id="primitiveList" class="primitive-list"></ul>
+</aside>
+
+<section class="editor-panel">
+<label for="svgEditor">SVG Code</label>
+<textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
+<p id="statusMessage" class="status-message"></p>
+<section id="errorPanel" hidden>
+<h3>Rendering Error</h3>
+<p id="errorMessage"></p>
+</section>
+<section id="shortcutSummary">
+<h3>Current Shortcut</h3>
+<p id="jumpShortcutSummary">Jump to Line: Alt+Shift+J</p>
+</section>
+</section>
+<section class="preview-panel">
+<h3>Quick Notes</h3>
+<ul>
+<li>SVG width and height should match your intended output size.</li>
+<li>Leave fill blank in the attribute prompt to insert <code>fill="none"</code>.</li>
+<li>Printing from render view hides the app controls.</li>
+<li>Save often if you are testing several versions of a drawing.</li>
+<li>SVG title text is set from the filename when you create a new file.</li>
+</ul>
+</section>
+</div>
+</div>
+
+<div id="renderView" hidden>
+<div class="workspace-header">
+<div>
+<h2>Rendered SVG</h2>
+<p id="renderMeta">Rendered output ready for print or export.</p>
+</div>
+<div class="action-row non-printing">
+<button type="button" id="returnToCodeButton">Return to Code</button>
+<button type="button" id="printButton">Print</button>
+<button type="button" id="saveFromRenderButton">Save SVG</button>
+<button type="button" id="exportRasterButton">Export Raster</button>
+</div>
+</div>
+<section id="renderCanvas" tabindex="-1"></section>
+</div>
+</section>
+</main>
+
+<footer class="site-footer">
+<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a></p>
+</footer>
+
+<dialog id="newFileDialog">
+<form method="dialog" id="newFileForm">
+<h2>Create a New SVG File</h2>
+<p>Enter the file details that shapeCrafter should use to generate your opening SVG tag and title tag.</p>
+
+<label for="fileNameInput">Filename</label>
+<input id="fileNameInput" name="filename" type="text" required>
+
+<label for="viewBoxInput">viewBox</label>
+<input id="viewBoxInput" name="viewbox" type="text" value="0 0 500 500" required>
+
+<details>
+<summary>What should go in viewBox?</summary>
+<p>Use four numbers separated by spaces. A common starting point is <code>0 0 500 500</code>, which sets the x origin, y origin, width, and height of the SVG drawing space.</p>
+</details>
+
+<label for="svgWidthInput">Width</label>
+<input id="svgWidthInput" name="width" type="text" value="500" required>
+
+<label for="svgHeightInput">Height</label>
+<input id="svgHeightInput" name="height" type="text" value="500" required>
+
+<menu>
+<button type="button" data-close-dialog="newFileDialog">Cancel</button>
+<button type="submit" value="default">Create File</button>
+</menu>
+</form>
+</dialog>
+
+<dialog id="shapeDialog">
+<form method="dialog" id="shapeForm">
+<h2 id="shapeDialogTitle">Add Shape</h2>
+<p id="shapeDialogDescription">Enter the attributes for the selected SVG primitive.</p>
+<div id="shapeFieldContainer" class="modal-fields"></div>
+<menu>
+<button type="button" data-close-dialog="shapeDialog">Cancel</button>
+<button type="submit" value="default" id="shapeSubmitButton">Add Shape to Canvas</button>
+</menu>
+</form>
+</dialog>
+
+<dialog id="jumpDialog">
+<form method="dialog" id="jumpForm">
+<h2>Jump to Line</h2>
+<p>Enter a line number in the editor.</p>
+<label for="jumpLineInput">Line Number</label>
+<input id="jumpLineInput" name="line" type="number" min="1" required>
+<menu>
+<button type="button" data-close-dialog="jumpDialog">Cancel</button>
+<button type="submit" value="default">Jump</button>
+</menu>
+</form>
+</dialog>
+
+<dialog id="shortcutsDialog">
+<form method="dialog" id="shortcutsForm">
+<h2>Keyboard Shortcuts</h2>
+<p>Choose the key combination for Jump to Line. The default is selected to avoid common browser shortcuts, but you can remap it for your setup.</p>
+<label for="shortcutModifierInput">Modifier Keys</label>
+<select id="shortcutModifierInput" name="modifiers">
+<option value="Alt+Shift">Alt+Shift</option>
+<option value="Control+Shift">Control+Shift</option>
+<option value="Alt+Control">Alt+Control</option>
+<option value="Alt+Control+Shift">Alt+Control+Shift</option>
+</select>
+
+<label for="shortcutKeyInput">Letter Key</label>
+<input id="shortcutKeyInput" name="key" type="text" maxlength="1" value="J" required>
+
+<menu>
+<button type="button" id="resetShortcutButton">Reset Default</button>
+<button type="button" data-close-dialog="shortcutsDialog">Cancel</button>
+<button type="submit" value="default">Save Shortcut</button>
+</menu>
+</form>
+</dialog>
+
+<dialog id="exportDialog">
+<form method="dialog" id="exportForm">
+<h2>Export Raster</h2>
+<p>Choose the output format, pixel size, and DPI for the raster export.</p>
+
+<label for="exportTypeInput">File Type</label>
+<select id="exportTypeInput" name="type">
+<option value="image/png">PNG</option>
+<option value="image/jpeg">JPG</option>
+<option value="image/webp">WEBP</option>
+</select>
+
+<label for="exportWidthInput">Output Width in Pixels</label>
+<input id="exportWidthInput" name="width" type="number" min="1" value="1000" required>
+
+<label for="exportHeightInput">Output Height in Pixels</label>
+<input id="exportHeightInput" name="height" type="number" min="1" value="1000" required>
+
+<label for="exportDpiInput">DPI</label>
+<input id="exportDpiInput" name="dpi" type="number" min="1" value="96" required>
+
+<menu>
+<button type="button" data-close-dialog="exportDialog">Cancel</button>
+<button type="submit" value="default">Export Raster</button>
+</menu>
+</form>
+</dialog>
+
+<script src="scripts/app.js"></script>
+</body>
+</html>
