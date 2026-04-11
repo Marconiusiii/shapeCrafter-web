@@ -121,6 +121,187 @@
 </ul>
 </section>
 </div>
+
+<section class="reference-panel">
+<details id="svgCodeReference">
+<summary>SVG Code Reference</summary>
+<div class="reference-content">
+<p>Expand the sections below for quick reminders while you code.</p>
+
+<details>
+<summary>Rectangle Reference</summary>
+<h2>Rectangle Summary</h2>
+<ul>
+<li>x - Horizontal position of the rectangle.</li>
+<li>y - Vertical position of the rectangle.</li>
+<li>width - Width of the rectangle.</li>
+<li>height - Height of the rectangle.</li>
+<li>rx - Horizontal corner rounding.</li>
+<li>ry - Vertical corner rounding.</li>
+</ul>
+</details>
+
+<details>
+<summary>Circle Reference</summary>
+<h2>Circle Summary</h2>
+<ul>
+<li>cx - Horizontal position of the circle center.</li>
+<li>cy - Vertical position of the circle center.</li>
+<li>r - Radius of the circle.</li>
+</ul>
+</details>
+
+<details>
+<summary>Ellipse Reference</summary>
+<h2>Ellipse Summary</h2>
+<ul>
+<li>cx - Horizontal position of the ellipse center.</li>
+<li>cy - Vertical position of the ellipse center.</li>
+<li>rx - Horizontal radius of the ellipse.</li>
+<li>ry - Vertical radius of the ellipse.</li>
+</ul>
+</details>
+
+<details>
+<summary>Line Reference</summary>
+<h2>Line Summary</h2>
+<ul>
+<li>x1 - Horizontal position of the line start.</li>
+<li>y1 - Vertical position of the line start.</li>
+<li>x2 - Horizontal position of the line end.</li>
+<li>y2 - Vertical position of the line end.</li>
+</ul>
+</details>
+
+<details>
+<summary>Polyline Reference</summary>
+<h2>Polyline Summary</h2>
+<ul>
+<li>points - A list of x and y coordinate pairs for each connected point.</li>
+<li>fill - Usually set to none unless you want the open shape area filled.</li>
+</ul>
+</details>
+
+<details>
+<summary>Polygon Reference</summary>
+<h2>Polygon Summary</h2>
+<ul>
+<li>points - A list of x and y coordinate pairs for each point in the closed shape.</li>
+<li>fill - Fills the closed interior of the polygon.</li>
+</ul>
+</details>
+
+<details>
+<summary>Path Reference</summary>
+<h2>Path Summary</h2>
+<ul>
+<li>d - The drawing instructions for the path. This is where the path command letters and point values go.</li>
+<li>M - Move to a new absolute point.</li>
+<li>m - Move to a new relative point.</li>
+<li>L - Draw a line to an absolute point.</li>
+<li>l - Draw a line to a relative point.</li>
+<li>H - Draw a horizontal line to an absolute x position.</li>
+<li>h - Draw a horizontal line by a relative x amount.</li>
+<li>V - Draw a vertical line to an absolute y position.</li>
+<li>v - Draw a vertical line by a relative y amount.</li>
+<li>C - Draw a cubic bezier curve with absolute control points.</li>
+<li>c - Draw a cubic bezier curve with relative control points.</li>
+<li>S - Draw a smooth cubic bezier curve using an absolute point.</li>
+<li>s - Draw a smooth cubic bezier curve using a relative point.</li>
+<li>Q - Draw a quadratic bezier curve with an absolute control point.</li>
+<li>q - Draw a quadratic bezier curve with a relative control point.</li>
+<li>T - Draw a smooth quadratic curve to an absolute point.</li>
+<li>t - Draw a smooth quadratic curve to a relative point.</li>
+<li>A - Draw an arc using absolute values.</li>
+<li>a - Draw an arc using relative values.</li>
+<li>Z - Close the path back to its starting point.</li>
+<li>z - Close the path back to its starting point.</li>
+</ul>
+</details>
+
+<details>
+<summary>Text Reference</summary>
+<h2>Text Summary</h2>
+<ul>
+<li>x - Horizontal position of the text start.</li>
+<li>y - Vertical position of the text baseline.</li>
+<li>font-size - Size of the text.</li>
+<li>text-anchor - Alignment of the text such as start, middle, or end.</li>
+<li>content - The text that appears between the opening and closing text tags.</li>
+</ul>
+</details>
+
+<details>
+<summary>Styling Reference</summary>
+<h2>Styling Summary</h2>
+<ul>
+<li>stroke - Color of the outline.</li>
+<li>stroke-width - Thickness of the outline.</li>
+<li>fill - Color inside a closed shape. Use none for no fill.</li>
+<li>stroke-dasharray - Pattern of dashes and gaps in the stroke.</li>
+<li>stroke-linejoin - Shape of corners where two stroke segments meet.</li>
+<li>stroke-linecap - Shape of the start and end of open strokes.</li>
+<li>opacity - Overall visibility level of the shape.</li>
+<li>fill-opacity - Visibility level of the fill only.</li>
+<li>stroke-opacity - Visibility level of the stroke only.</li>
+<li>class - Reusable styling hook for CSS classes.</li>
+<li>id - Unique styling or reference hook for one specific element.</li>
+</ul>
+</details>
+
+<details>
+<summary>Transforms Reference</summary>
+<h2>Transforms Summary</h2>
+<ul>
+<li>transform - Attribute used to apply one or more transforms to an element or group.</li>
+<li>translate(x y) - Moves the element horizontally and vertically.</li>
+<li>scale(x y) - Scales the element larger or smaller.</li>
+<li>rotate(angle) - Rotates the element around its default center point.</li>
+<li>rotate(angle cx cy) - Rotates the element around a specified point.</li>
+<li>skewX(angle) - Slants the element horizontally.</li>
+<li>skewY(angle) - Slants the element vertically.</li>
+</ul>
+</details>
+
+<details>
+<summary>Gradients Reference</summary>
+<h2>Gradients Summary</h2>
+<ul>
+<li>linearGradient - Defines a straight-line color blend inside a defs section.</li>
+<li>x1, y1 - Starting point of the linear gradient.</li>
+<li>x2, y2 - Ending point of the linear gradient.</li>
+<li>radialGradient - Defines a circular color blend inside a defs section.</li>
+<li>cx, cy - Center point of the radial gradient.</li>
+<li>r - Radius of the radial gradient.</li>
+<li>stop - Defines a color stop inside the gradient.</li>
+<li>offset - Position of the stop within the gradient.</li>
+<li>stop-color - Color used at the stop.</li>
+<li>stop-opacity - Visibility level of the stop color.</li>
+<li>fill="url(#gradientName)" - Applies the gradient to a fill by referencing its id.</li>
+</ul>
+</details>
+
+<details>
+<summary>Advanced Reference</summary>
+<h2>Advanced Summary</h2>
+<ul>
+<li>g - Groups related shapes so they can share transforms, masks, clipping, or organization.</li>
+<li>use - Repeats an existing shape by referencing its id with href="#idName".</li>
+<li>defs - Stores reusable definitions such as gradients, clip paths, masks, or source shapes for use elements.</li>
+<li>class - Applies reusable styling to many shapes through CSS.</li>
+<li>id - Gives a unique name to one element so it can be referenced or styled directly.</li>
+<li>style - Stores CSS rules inside the SVG for classes, ids, and shared styling.</li>
+<li>desc - Adds a description to the SVG file or to an individual shape.</li>
+<li>title - Gives the SVG file or a described element an accessible name.</li>
+<li>comments - Use <code>&lt;!-- comment --&gt;</code> to organize code or leave notes that do not render.</li>
+<li>nested svg - Places one SVG inside another so a drawing can keep its own canvas space.</li>
+<li>clipPath - Creates a visible area that cuts away anything outside the clipping shape.</li>
+<li>mask - Uses white, black, and gray values to reveal or hide parts of shapes.</li>
+</ul>
+</details>
+</div>
+</details>
+</section>
 </div>
 
 <div id="renderView" hidden inert>

@@ -120,6 +120,7 @@ main {
 .primitive-panel,
 .editor-panel,
 .preview-panel,
+.reference-panel,
 #renderCanvas,
 dialog {
   border: 2px solid #111;
@@ -165,6 +166,8 @@ dialog {
 }
 
 .primitive-panel details,
+#svgCodeReference,
+#svgCodeReference details,
 #helpDetails,
 #fileLibraryDetails {
   border: 1px solid #333;
@@ -174,15 +177,43 @@ dialog {
 }
 
 .primitive-panel summary,
+#svgCodeReference summary,
 #helpDetails summary,
 #fileLibraryDetails summary {
   font-weight: 700;
 }
 
 .primitive-panel details[open],
+#svgCodeReference[open],
+#svgCodeReference details[open],
 #helpDetails[open],
 #fileLibraryDetails[open] {
   background: #fff;
+}
+
+.reference-panel {
+  margin-top: 1.25rem;
+}
+
+.reference-content {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reference-content details h2 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.1em;
+}
+
+.reference-content ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+}
+
+.reference-content li + li {
+  margin-top: 0.35rem;
 }
 
 label,
