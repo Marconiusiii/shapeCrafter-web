@@ -554,7 +554,7 @@ function renderFileList() {
 
       const openButton = document.createElement("button");
       openButton.type = "button";
-      openButton.textContent = `${file.name} | ${formatDate(file.updatedAt)}`;
+      openButton.textContent = `${file.name}, ${formatDate(file.updatedAt)}`;
       openButton.setAttribute("aria-description", "Opens file");
       openButton.addEventListener("click", () => openFile(file.id));
 
