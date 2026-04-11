@@ -46,9 +46,9 @@
 
 <main id="mainContent">
 <section class="intro" id="homeView">
-<h1>shapeCrafter Web</h1>
+<h1>shapeCrafter</h1>
 <p>shapeCrafter gives you a place to create hand-coded SVG graphics, render them instantly in the browser, and move directly to print or export.</p>
-<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print only the artwork.</p>
+<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss only the artwork.</p>
 <div class="action-row">
 <button type="button" id="newFileButton">New File</button>
 <button type="button" id="openShortcutsButton">Keyboard Shortcuts</button>
@@ -100,6 +100,10 @@
 
 <section class="editor-panel" aria-label="SVG Editor">
 <h2>SVG Editor</h2>
+<section id="errorPanel" hidden>
+<h3>Errors in SVG Code</h3>
+<ul id="errorList"></ul>
+</section>
 <label for="svgEditor">SVG Code</label>
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
 <div class="action-row">
@@ -110,32 +114,17 @@
 <button type="button" id="deleteCurrentFileButton">Delete File</button>
 </div>
 <p id="statusMessage" class="status-message"></p>
-<section id="errorPanel" hidden>
-<h3>Rendering Error</h3>
-<p id="errorMessage"></p>
-</section>
-</section>
-<section class="preview-panel">
-<h2>Quick Notes</h2>
-<ul>
-<li>SVG width and height should match your intended output size.</li>
-<li>Leave fill blank in the attribute prompt to insert <code>fill="none"</code>.</li>
-<li>Printing from render view hides the app controls.</li>
-<li>Save often if you are testing several versions of a drawing.</li>
-<li>SVG title text is set from the filename when you create a new file.</li>
-</ul>
 </section>
 </div>
 
 <section class="reference-panel">
-<details id="svgCodeReference">
-<summary>SVG Code Reference</summary>
+<h2>SVG Code Reference</h2>
 <div class="reference-content">
 <p>Expand the sections below for quick reminders while you code.</p>
 
 <details>
 <summary>Rectangle Reference</summary>
-<h2>Rectangle Summary</h2>
+<h3>Rectangle Summary</h3>
 <ul>
 <li>x - Horizontal position of the rectangle.</li>
 <li>y - Vertical position of the rectangle.</li>
@@ -148,7 +137,7 @@
 
 <details>
 <summary>Circle Reference</summary>
-<h2>Circle Summary</h2>
+<h3>Circle Summary</h3>
 <ul>
 <li>cx - Horizontal position of the circle center.</li>
 <li>cy - Vertical position of the circle center.</li>
@@ -158,7 +147,7 @@
 
 <details>
 <summary>Ellipse Reference</summary>
-<h2>Ellipse Summary</h2>
+<h3>Ellipse Summary</h3>
 <ul>
 <li>cx - Horizontal position of the ellipse center.</li>
 <li>cy - Vertical position of the ellipse center.</li>
@@ -169,7 +158,7 @@
 
 <details>
 <summary>Line Reference</summary>
-<h2>Line Summary</h2>
+<h3>Line Summary</h3>
 <ul>
 <li>x1 - Horizontal position of the line start.</li>
 <li>y1 - Vertical position of the line start.</li>
@@ -180,7 +169,7 @@
 
 <details>
 <summary>Polyline Reference</summary>
-<h2>Polyline Summary</h2>
+<h3>Polyline Summary</h3>
 <ul>
 <li>points - A list of x and y coordinate pairs for each connected point.</li>
 <li>fill - Usually set to none unless you want the open shape area filled.</li>
@@ -189,7 +178,7 @@
 
 <details>
 <summary>Polygon Reference</summary>
-<h2>Polygon Summary</h2>
+<h3>Polygon Summary</h3>
 <ul>
 <li>points - A list of x and y coordinate pairs for each point in the closed shape.</li>
 <li>fill - Fills the closed interior of the polygon.</li>
@@ -198,7 +187,7 @@
 
 <details>
 <summary>Path Reference</summary>
-<h2>Path Summary</h2>
+<h3>Path Summary</h3>
 <ul>
 <li>d - The drawing instructions for the path. This is where the path command letters and point values go.</li>
 <li>M - Move to a new absolute point.</li>
@@ -226,7 +215,7 @@
 
 <details>
 <summary>Text Reference</summary>
-<h2>Text Summary</h2>
+<h3>Text Summary</h3>
 <ul>
 <li>x - Horizontal position of the text start.</li>
 <li>y - Vertical position of the text baseline.</li>
@@ -238,7 +227,7 @@
 
 <details>
 <summary>Styling Reference</summary>
-<h2>Styling Summary</h2>
+<h3>Styling Summary</h3>
 <ul>
 <li>stroke - Color of the outline.</li>
 <li>stroke-width - Thickness of the outline.</li>
@@ -256,7 +245,7 @@
 
 <details>
 <summary>Transforms Reference</summary>
-<h2>Transforms Summary</h2>
+<h3>Transforms Summary</h3>
 <ul>
 <li>transform - Attribute used to apply one or more transforms to an element or group.</li>
 <li>translate(x y) - Moves the element horizontally and vertically.</li>
@@ -270,7 +259,7 @@
 
 <details>
 <summary>Gradients Reference</summary>
-<h2>Gradients Summary</h2>
+<h3>Gradients Summary</h3>
 <ul>
 <li>linearGradient - Defines a straight-line color blend inside a defs section.</li>
 <li>x1, y1 - Starting point of the linear gradient.</li>
@@ -288,7 +277,7 @@
 
 <details>
 <summary>Advanced Reference</summary>
-<h2>Advanced Summary</h2>
+<h3>Advanced Summary</h3>
 <ul>
 <li>g - Groups related shapes so they can share transforms, masks, clipping, or organization.</li>
 <li>use - Repeats an existing shape by referencing its id with href="#idName".</li>
@@ -305,7 +294,6 @@
 </ul>
 </details>
 </div>
-</details>
 </section>
 </div>
 
@@ -433,6 +421,18 @@
 <menu>
 <button type="button" data-close-dialog="exportDialog">Cancel</button>
 <button type="submit" value="default">Export Raster</button>
+</menu>
+</form>
+</dialog>
+
+<dialog id="errorDialog">
+<form method="dialog" id="errorForm">
+<h2 id="errorDialogHeading" tabindex="-1">SVG Rendering Error</h2>
+<p id="errorDialogSummary">The SVG could not be rendered.</p>
+<ul id="errorDialogList"></ul>
+<menu>
+<button type="button" data-close-dialog="errorDialog">Cancel</button>
+<button type="button" id="jumpToErrorButton">Jump to Error</button>
 </menu>
 </form>
 </dialog>

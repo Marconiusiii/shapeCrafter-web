@@ -53,6 +53,7 @@ const defaultShortcut = {
 const state = {
   currentFileId: "",
   files: [],
+  currentErrors: [],
   lastFocusedTrigger: null,
   pendingPrimitive: null,
   pendingFocusTarget: null,
@@ -76,7 +77,7 @@ const elements = {
   statusMessage: document.getElementById("statusMessage"),
   editorAnnouncer: document.getElementById("editorAnnouncer"),
   errorPanel: document.getElementById("errorPanel"),
-  errorMessage: document.getElementById("errorMessage"),
+  errorList: document.getElementById("errorList"),
   fileList: document.getElementById("fileList"),
   fileLibrarySummary: document.getElementById("fileLibrarySummary"),
   attributePromptToggle: document.getElementById("attributePromptToggle"),
@@ -104,6 +105,12 @@ const elements = {
   exportDialog: document.getElementById("exportDialog"),
   exportDialogHeading: document.getElementById("exportDialogHeading"),
   exportForm: document.getElementById("exportForm"),
+  errorDialog: document.getElementById("errorDialog"),
+  errorForm: document.getElementById("errorForm"),
+  errorDialogHeading: document.getElementById("errorDialogHeading"),
+  errorDialogSummary: document.getElementById("errorDialogSummary"),
+  errorDialogList: document.getElementById("errorDialogList"),
+  jumpToErrorButton: document.getElementById("jumpToErrorButton"),
   exportTypeInput: document.getElementById("exportTypeInput"),
   exportWidthInput: document.getElementById("exportWidthInput"),
   exportHeightInput: document.getElementById("exportHeightInput"),
@@ -140,6 +147,7 @@ elements.deleteCurrentFileButton.addEventListener("click", () => {
     deleteFile(state.currentFileId);
   }
 });
+elements.jumpToErrorButton.addEventListener("click", jumpToCurrentError);
 document.getElementById("jumpToLineButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
   openDialog(elements.jumpDialog, elements.jumpDialogHeading);
@@ -203,7 +211,7 @@ elements.jumpForm.addEventListener("submit", (event) => {
   focusEditorLine(line);
 });
 
-[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.exportDialog].forEach((dialog) => {
+[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.exportDialog, elements.errorDialog].forEach((dialog) => {
   dialog.addEventListener("close", handleDialogClose);
 });
 
@@ -230,7 +238,7 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
 });
 
 elements.svgEditor.addEventListener("input", () => {
-  clearMessages();
+  clearStatus();
   updateCurrentFileContent(elements.svgEditor.value);
 });
 
@@ -713,31 +721,23 @@ function renderSvg() {
   const doc = parser.parseFromString(source, "image/svg+xml");
   const parserError = doc.querySelector("parsererror");
   if (parserError) {
-    const message = parserError.textContent.trim().replace(/\s+/g, " ");
-    elements.errorPanel.hidden = false;
-    elements.errorMessage.textContent = message;
-    setStatus("The SVG could not be rendered. Review the error message.");
-    const lineMatch = message.match(/line\s+(\d+)/i);
-    if (lineMatch) {
-      focusEditorLine(Number(lineMatch[1]));
-    } else {
-      elements.svgEditor.focus();
-    }
+    presentRenderErrors(parseSvgErrors(parserError.textContent));
     return;
   }
 
   const svg = doc.documentElement;
   if (!svg || svg.nodeName.toLowerCase() !== "svg") {
-    elements.errorPanel.hidden = false;
-    elements.errorMessage.textContent = "The document must begin with a valid <svg> root element.";
-    setStatus("A valid SVG root element is required.");
-    elements.svgEditor.focus();
+    presentRenderErrors([
+      {
+        line: null,
+        message: "The document must begin with a valid <svg> root element."
+      }
+    ]);
     return;
   }
 
   sanitizeSvg(svg);
-  elements.errorPanel.hidden = true;
-  elements.errorMessage.textContent = "";
+  clearRenderErrors();
   elements.renderCanvas.replaceChildren(svg.cloneNode(true));
   setActiveView("render");
   elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
@@ -752,7 +752,7 @@ function returnToEditor() {
 
 function returnHome() {
   setActiveView("home");
-  clearMessages();
+  clearStatus();
   document.getElementById("shapeCrafterHomeLink").focus();
 }
 
@@ -924,6 +924,11 @@ function updateDocumentTitle(stateOverride = {}) {
   const filename = currentFile ? currentFile.name : "shapeCrafter";
   const activeView = stateOverride.view || getActiveView();
 
+  if ((activeDialog === "errorDialog" || state.currentErrors.length) && currentFile) {
+    document.title = `Error in ${filename} - ${BASE_TITLE}`;
+    return;
+  }
+
   if (activeView === "render" && currentFile) {
     document.title = `${filename} Print View - ${BASE_TITLE}`;
     return;
@@ -1062,14 +1067,131 @@ function setStatus(message) {
   elements.statusMessage.textContent = message;
 }
 
-function clearMessages() {
+function clearStatus() {
   elements.statusMessage.textContent = "";
-  elements.errorPanel.hidden = true;
-  elements.errorMessage.textContent = "";
+}
+
+function clearMessages() {
+  clearStatus();
+  clearRenderErrors();
 }
 
 function restoreFocus() {
   if (state.lastFocusedTrigger && typeof state.lastFocusedTrigger.focus === "function") {
     state.lastFocusedTrigger.focus();
   }
+}
+
+function parseSvgErrors(rawMessage) {
+  const normalized = rawMessage.replace(/\r/g, "");
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const errors = [];
+
+  lines.forEach((line) => {
+    const lineMatch = line.match(/line\s+(\d+)/i);
+    const columnMatch = line.match(/column\s+(\d+)/i);
+    const cleaned = line.replace(/\s+/g, " ").trim();
+    if (cleaned.toLowerCase().includes("parsererror")) {
+      return;
+    }
+
+    errors.push({
+      line: lineMatch ? Number(lineMatch[1]) : null,
+      column: columnMatch ? Number(columnMatch[1]) : null,
+      message: cleaned
+    });
+  });
+
+  if (!errors.length) {
+    errors.push({
+      line: null,
+      column: null,
+      message: normalized.replace(/\s+/g, " ").trim()
+    });
+  }
+
+  return dedupeErrors(errors);
+}
+
+function dedupeErrors(errors) {
+  const seen = new Set();
+  return errors.filter((error) => {
+    const key = `${error.line || ""}-${error.column || ""}-${error.message}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function presentRenderErrors(errors) {
+  state.currentErrors = errors;
+  renderErrorPanel();
+  renderErrorDialog();
+  setStatus("The SVG could not be rendered.");
+  state.lastFocusedTrigger = document.getElementById("renderButton");
+  openDialog(elements.errorDialog, elements.errorDialogHeading);
+}
+
+function renderErrorPanel() {
+  elements.errorList.replaceChildren();
+  if (!state.currentErrors.length) {
+    elements.errorPanel.hidden = true;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  state.currentErrors.forEach((error) => {
+    const item = document.createElement("li");
+    item.textContent = formatErrorItem(error);
+    fragment.appendChild(item);
+  });
+  elements.errorList.appendChild(fragment);
+  elements.errorPanel.hidden = false;
+}
+
+function renderErrorDialog() {
+  const errorCount = state.currentErrors.length;
+  elements.errorDialogList.replaceChildren();
+  elements.errorDialogSummary.textContent = errorCount === 1
+    ? "The browser found one SVG parsing error."
+    : `The browser found ${errorCount} SVG parsing errors.`;
+  elements.jumpToErrorButton.textContent = errorCount === 1 ? "Jump to Error" : "Jump to First Error";
+
+  const fragment = document.createDocumentFragment();
+  state.currentErrors.forEach((error) => {
+    const item = document.createElement("li");
+    item.textContent = formatErrorItem(error);
+    fragment.appendChild(item);
+  });
+  elements.errorDialogList.appendChild(fragment);
+}
+
+function formatErrorItem(error) {
+  if (error.line) {
+    return `Line ${error.line}${error.column ? `, column ${error.column}` : ""}: ${error.message}`;
+  }
+  return error.message;
+}
+
+function clearRenderErrors() {
+  state.currentErrors = [];
+  elements.errorList.replaceChildren();
+  elements.errorDialogList.replaceChildren();
+  elements.errorPanel.hidden = true;
+  updateDocumentTitle();
+}
+
+function jumpToCurrentError() {
+  const firstError = state.currentErrors[0];
+  closeDialog(elements.errorDialog, { restoreFocus: false });
+  if (firstError && firstError.line) {
+    focusEditorLine(firstError.line);
+    return;
+  }
+  elements.svgEditor.focus();
 }

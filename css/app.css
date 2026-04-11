@@ -166,7 +166,6 @@ dialog {
 }
 
 .primitive-panel details,
-#svgCodeReference,
 #svgCodeReference details,
 #helpDetails,
 #fileLibraryDetails {
@@ -177,14 +176,13 @@ dialog {
 }
 
 .primitive-panel summary,
-#svgCodeReference summary,
+#svgCodeReference details summary,
 #helpDetails summary,
 #fileLibraryDetails summary {
   font-weight: 700;
 }
 
 .primitive-panel details[open],
-#svgCodeReference[open],
 #svgCodeReference details[open],
 #helpDetails[open],
 #fileLibraryDetails[open] {
