@@ -81,6 +81,7 @@
 <h1 id="currentFileHeading">Untitled</h1>
 <p id="fileMeta">No file open.</p>
 <button type="button" id="renameCurrentFileButton">Rename File</button>
+<button type="button" id="backToHomeFromEditorButton">Back to Home</button>
 </div>
 </div>
 
@@ -102,7 +103,6 @@
 <label for="svgEditor">SVG Code</label>
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
 <div class="action-row">
-<button type="button" id="backToHomeFromEditorButton">Back to Home</button>
 <button type="button" id="renderButton">Render SVG</button>
 <button type="button" id="jumpToLineButton">Jump to Line</button>
 <button type="button" id="saveButton">Save to Browser</button>
@@ -316,11 +316,11 @@
 <p id="renderMeta">Rendered output ready for print or export.</p>
 </div>
 <div class="action-row non-printing">
-<button type="button" id="backToHomeFromRenderButton">Back to Home</button>
 <button type="button" id="returnToCodeButton">Return to Code</button>
 <button type="button" id="printButton">Print</button>
 <button type="button" id="saveFromRenderButton">Save SVG</button>
 <button type="button" id="exportRasterButton">Export Raster</button>
+<button type="button" id="backToHomeFromRenderButton">Back to Home</button>
 </div>
 </div>
 <section id="renderCanvas" tabindex="-1"></section>
