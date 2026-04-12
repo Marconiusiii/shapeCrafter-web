@@ -360,6 +360,18 @@ dialog form {
   gap: 0.75rem;
 }
 
+#shortcutsForm section {
+  padding: 0.75rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+#shortcutsForm h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.5);
 }
@@ -371,6 +383,14 @@ menu {
   justify-content: flex-end;
   padding: 0;
   margin: 0.5rem 0 0;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
 }
 
 .modal-fields {

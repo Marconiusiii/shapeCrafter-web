@@ -51,7 +51,7 @@
 <p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss only the artwork.</p>
 <div class="action-row">
 <button type="button" id="newFileButton">New File</button>
-<button type="button" id="openShortcutsButton">Keyboard Shortcuts</button>
+<button type="button" id="openShortcutsButton" aria-haspopup="dialog">Keyboard Shortcuts</button>
 </div>
 
 <details id="helpDetails">
@@ -381,9 +381,12 @@
 <dialog id="shortcutsDialog">
 <form method="dialog" id="shortcutsForm">
 <h2 id="shortcutsDialogHeading" tabindex="-1">Keyboard Shortcuts</h2>
-<p>Choose the key combination for Jump to Line.</p>
+<p>Set your preferred shortcuts for these shapeCrafter Code Editor actions.</p>
+
+<section aria-labelledby="jumpShortcutHeading">
+<h3 id="jumpShortcutHeading">Jump to Line</h3>
 <label for="shortcutModifierInput">Modifier Keys</label>
-<select id="shortcutModifierInput" name="modifiers">
+<select id="shortcutModifierInput" name="jumpModifiers" class="shortcut-modifier-input">
 <option value="Control+Shift">Control+Shift</option>
 <option value="Alt+Shift">Alt+Shift</option>
 <option value="Alt+Control">Alt+Control</option>
@@ -391,13 +394,42 @@
 </select>
 
 <label for="shortcutKeyInput">Letter Key</label>
-<input id="shortcutKeyInput" name="key" type="text" maxlength="1" value="J" required>
+<input id="shortcutKeyInput" name="jumpKey" type="text" maxlength="1" value="J" required>
+</section>
 
-<menu>
+<section aria-labelledby="indentShortcutHeading">
+<h3 id="indentShortcutHeading">Tab Indent</h3>
+<label for="indentModifierInput">Modifier Keys</label>
+<select id="indentModifierInput" name="indentModifiers" class="shortcut-modifier-input">
+<option value="Control">Control</option>
+<option value="Alt+Control">Alt+Control</option>
+<option value="Control+Shift">Control+Shift</option>
+<option value="Alt+Control+Shift">Alt+Control+Shift</option>
+</select>
+
+<label for="indentKeyInput">Key</label>
+<input id="indentKeyInput" name="indentKey" type="text" maxlength="1" value="]" required>
+</section>
+
+<section aria-labelledby="outdentShortcutHeading">
+<h3 id="outdentShortcutHeading">Tab Outdent</h3>
+<label for="outdentModifierInput">Modifier Keys</label>
+<select id="outdentModifierInput" name="outdentModifiers" class="shortcut-modifier-input">
+<option value="Control">Control</option>
+<option value="Alt+Control">Alt+Control</option>
+<option value="Control+Shift">Control+Shift</option>
+<option value="Alt+Control+Shift">Alt+Control+Shift</option>
+</select>
+
+<label for="outdentKeyInput">Key</label>
+<input id="outdentKeyInput" name="outdentKey" type="text" maxlength="1" value="[" required>
+</section>
+
+<div class="dialog-actions">
 <button type="button" id="resetShortcutButton">Reset Default</button>
 <button type="button" data-close-dialog="shortcutsDialog">Cancel</button>
-<button type="submit" value="default">Save Shortcut</button>
-</menu>
+<button type="submit" value="default">Save Shortcuts</button>
+</div>
 </form>
 </dialog>
 

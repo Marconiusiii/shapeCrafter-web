@@ -45,9 +45,19 @@ const PRIMITIVES = [
   }
 ];
 
-const defaultShortcut = {
-  modifiers: "Control+Shift",
-  key: "J"
+const defaultShortcuts = {
+  jumpToLine: {
+    modifiers: "Control+Shift",
+    key: "J"
+  },
+  indent: {
+    modifiers: "Control",
+    key: "]"
+  },
+  outdent: {
+    modifiers: "Control",
+    key: "["
+  }
 };
 
 const state = {
@@ -103,6 +113,10 @@ const elements = {
   shortcutsDialogHeading: document.getElementById("shortcutsDialogHeading"),
   shortcutModifierInput: document.getElementById("shortcutModifierInput"),
   shortcutKeyInput: document.getElementById("shortcutKeyInput"),
+  indentModifierInput: document.getElementById("indentModifierInput"),
+  indentKeyInput: document.getElementById("indentKeyInput"),
+  outdentModifierInput: document.getElementById("outdentModifierInput"),
+  outdentKeyInput: document.getElementById("outdentKeyInput"),
   exportDialog: document.getElementById("exportDialog"),
   exportDialogHeading: document.getElementById("exportDialogHeading"),
   exportForm: document.getElementById("exportForm"),
@@ -159,7 +173,7 @@ document.getElementById("exportRasterButton").addEventListener("click", (event) 
   openDialog(elements.exportDialog, elements.exportDialogHeading);
 });
 document.getElementById("resetShortcutButton").addEventListener("click", () => {
-  state.shortcuts = { ...defaultShortcut };
+  state.shortcuts = cloneShortcuts(defaultShortcuts);
   syncShortcutInputs();
 });
 
@@ -230,12 +244,22 @@ elements.exportForm.addEventListener("submit", async (event) => {
 document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
   event.preventDefault();
   state.shortcuts = {
-    modifiers: elements.shortcutModifierInput.value,
-    key: elements.shortcutKeyInput.value.trim().toUpperCase() || defaultShortcut.key
+    jumpToLine: {
+      modifiers: elements.shortcutModifierInput.value,
+      key: elements.shortcutKeyInput.value.trim().toUpperCase() || defaultShortcuts.jumpToLine.key
+    },
+    indent: {
+      modifiers: elements.indentModifierInput.value,
+      key: elements.indentKeyInput.value.trim() || defaultShortcuts.indent.key
+    },
+    outdent: {
+      modifiers: elements.outdentModifierInput.value,
+      key: elements.outdentKeyInput.value.trim() || defaultShortcuts.outdent.key
+    }
   };
   localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(state.shortcuts));
   closeDialog(elements.shortcutsDialog);
-  setStatus(`Jump to Line shortcut saved as ${describeShortcut(state.shortcuts)}.`);
+  setStatus(`Shortcuts saved. Jump to Line: ${describeShortcut(state.shortcuts.jumpToLine)}. Tab Indent: ${describeShortcut(state.shortcuts.indent)}. Tab Outdent: ${describeShortcut(state.shortcuts.outdent)}.`);
 });
 
 elements.svgEditor.addEventListener("input", () => {
@@ -244,20 +268,20 @@ elements.svgEditor.addEventListener("input", () => {
 });
 
 elements.svgEditor.addEventListener("keydown", (event) => {
-  if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "]") {
+  if (matchesShortcut(event, state.shortcuts.indent)) {
     event.preventDefault();
     indentSelection();
     return;
   }
 
-  if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "[") {
+  if (matchesShortcut(event, state.shortcuts.outdent)) {
     event.preventDefault();
     outdentSelection();
   }
 });
 
 document.addEventListener("keydown", (event) => {
-  if (matchesShortcut(event, state.shortcuts)) {
+  if (matchesShortcut(event, state.shortcuts.jumpToLine)) {
     event.preventDefault();
     state.lastFocusedTrigger = document.activeElement;
     openDialog(elements.jumpDialog, elements.jumpDialogHeading);
@@ -308,16 +332,22 @@ function handleDialogClose() {
 }
 
 function syncShortcutInputs() {
-  elements.shortcutModifierInput.value = state.shortcuts.modifiers;
-  elements.shortcutKeyInput.value = state.shortcuts.key;
+  elements.shortcutModifierInput.value = state.shortcuts.jumpToLine.modifiers;
+  elements.shortcutKeyInput.value = state.shortcuts.jumpToLine.key;
+  elements.indentModifierInput.value = state.shortcuts.indent.modifiers;
+  elements.indentKeyInput.value = state.shortcuts.indent.key;
+  elements.outdentModifierInput.value = state.shortcuts.outdent.modifiers;
+  elements.outdentKeyInput.value = state.shortcuts.outdent.key;
 }
 
 function updateShortcutModifierLabels() {
-  [...elements.shortcutModifierInput.options].forEach((option) => {
-    option.textContent = option.value
-      .split("+")
-      .map((modifier) => mapModifierLabel(modifier))
-      .join("+");
+  document.querySelectorAll(".shortcut-modifier-input").forEach((select) => {
+    [...select.options].forEach((option) => {
+      option.textContent = option.value
+        .split("+")
+        .map((modifier) => mapModifierLabel(modifier))
+        .join("+");
+    });
   });
 }
 
@@ -913,16 +943,38 @@ function mimeToExtension(type) {
 
 function loadShortcuts() {
   try {
-    const savedShortcut = {
-      ...defaultShortcut,
-      ...JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || "{}")
-    };
-    if (savedShortcut.modifiers === "Alt+Shift" && savedShortcut.key.toUpperCase() === "J") {
-      return { ...defaultShortcut };
+    const savedShortcuts = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || "{}");
+
+    if ("modifiers" in savedShortcuts || "key" in savedShortcuts) {
+      return {
+        jumpToLine: {
+          ...defaultShortcuts.jumpToLine,
+          modifiers: savedShortcuts.modifiers === "Alt+Shift" && String(savedShortcuts.key || "").toUpperCase() === "J"
+            ? defaultShortcuts.jumpToLine.modifiers
+            : savedShortcuts.modifiers || defaultShortcuts.jumpToLine.modifiers,
+          key: String(savedShortcuts.key || defaultShortcuts.jumpToLine.key).toUpperCase()
+        },
+        indent: { ...defaultShortcuts.indent },
+        outdent: { ...defaultShortcuts.outdent }
+      };
     }
-    return savedShortcut;
+
+    return {
+      jumpToLine: {
+        ...defaultShortcuts.jumpToLine,
+        ...(savedShortcuts.jumpToLine || {})
+      },
+      indent: {
+        ...defaultShortcuts.indent,
+        ...(savedShortcuts.indent || {})
+      },
+      outdent: {
+        ...defaultShortcuts.outdent,
+        ...(savedShortcuts.outdent || {})
+      }
+    };
   } catch (error) {
-    return { ...defaultShortcut };
+    return cloneShortcuts(defaultShortcuts);
   }
 }
 
@@ -931,7 +983,15 @@ function describeShortcut(shortcut) {
     .split("+")
     .map((modifier) => mapModifierLabel(modifier))
     .join("+");
-  return `${modifierLabel}+${shortcut.key.toUpperCase()}`;
+  return `${modifierLabel}+${String(shortcut.key).toUpperCase()}`;
+}
+
+function cloneShortcuts(shortcuts) {
+  return {
+    jumpToLine: { ...shortcuts.jumpToLine },
+    indent: { ...shortcuts.indent },
+    outdent: { ...shortcuts.outdent }
+  };
 }
 
 function mapModifierLabel(modifier) {
@@ -1085,7 +1145,7 @@ function announceEditorChange(message) {
 }
 
 function matchesShortcut(event, shortcut) {
-  if (event.key.toUpperCase() !== shortcut.key.toUpperCase()) {
+  if (!shortcut || event.key.toUpperCase() !== String(shortcut.key).toUpperCase()) {
     return false;
   }
 
@@ -1093,8 +1153,12 @@ function matchesShortcut(event, shortcut) {
   const needsAlt = required.includes("Alt");
   const needsControl = required.includes("Control");
   const needsShift = required.includes("Shift");
+  const needsMeta = required.includes("Meta");
 
-  return event.altKey === needsAlt && event.ctrlKey === needsControl && event.shiftKey === needsShift;
+  return event.altKey === needsAlt
+    && event.ctrlKey === needsControl
+    && event.shiftKey === needsShift
+    && event.metaKey === needsMeta;
 }
 
 function setStatus(message) {
