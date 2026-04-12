@@ -70,7 +70,10 @@ const state = {
   pendingFocusTarget: null,
   shouldRestoreFocus: true,
   shortcuts: loadShortcuts(),
-  toastTimeoutId: 0
+  toastTimeoutId: 0,
+  exportSyncSource: "",
+  exportBaseWidthPx: 1000,
+  exportBaseHeightPx: 1000
 };
 
 const elements = {
@@ -135,6 +138,8 @@ const elements = {
   deleteDialogMessage: document.getElementById("deleteDialogMessage"),
   confirmDeleteButton: document.getElementById("confirmDeleteButton"),
   exportTypeInput: document.getElementById("exportTypeInput"),
+  exportUnitsInput: document.getElementById("exportUnitsInput"),
+  scaleProportionatelyInput: document.getElementById("scaleProportionatelyInput"),
   exportWidthInput: document.getElementById("exportWidthInput"),
   exportHeightInput: document.getElementById("exportHeightInput"),
   exportDpiInput: document.getElementById("exportDpiInput"),
@@ -204,6 +209,10 @@ elements.fileNameInput.addEventListener("invalid", () => {
     elements.fileNameInput.setCustomValidity("Please provide a filename");
   }
 });
+
+elements.exportUnitsInput.addEventListener("change", syncExportUnits);
+elements.exportWidthInput.addEventListener("input", () => syncExportDimensionPair("width"));
+elements.exportHeightInput.addEventListener("input", () => syncExportDimensionPair("height"));
 
 elements.newFileForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -894,10 +903,11 @@ async function exportRaster() {
   const height = Number(elements.exportHeightInput.value);
   const type = elements.exportTypeInput.value;
   const dpi = Number(elements.exportDpiInput.value);
-  const scale = dpi / 96;
+  const units = elements.exportUnitsInput.value;
+  const pixelSize = convertExportDimensionsToPixels(width, height, units, dpi);
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(width * scale));
-  canvas.height = Math.max(1, Math.round(height * scale));
+  canvas.width = Math.max(1, Math.round(pixelSize.width));
+  canvas.height = Math.max(1, Math.round(pixelSize.height));
   const context = canvas.getContext("2d");
 
   if (type === "image/jpeg") {
@@ -916,9 +926,11 @@ async function exportRaster() {
     throw new Error("The raster export could not be created.");
   }
 
+  const finalBlob = type === "image/png" ? await writePngDpiMetadata(blob, dpi) : blob;
+
   const extension = mimeToExtension(type);
   const filename = elements.currentFileHeading.textContent.replace(/\.svg$/i, "") || "drawing";
-  triggerDownload(blob, `${filename}.${extension}`);
+  triggerDownload(finalBlob, `${filename}.${extension}`);
 }
 
 function syncExportDimensionsFromSvg() {
@@ -932,6 +944,12 @@ function syncExportDimensionsFromSvg() {
 
   const width = numericAttribute(svg.getAttribute("width")) || 1000;
   const height = numericAttribute(svg.getAttribute("height")) || 1000;
+  state.exportBaseWidthPx = width;
+  state.exportBaseHeightPx = height;
+  state.exportSyncSource = "";
+  elements.exportUnitsInput.value = "px";
+  elements.scaleProportionatelyInput.checked = true;
+  setExportInputStep("px");
   elements.exportWidthInput.value = width;
   elements.exportHeightInput.value = height;
 }
@@ -943,6 +961,101 @@ function numericAttribute(value) {
 
   const match = String(value).match(/[\d.]+/);
   return match ? Number(match[0]) : null;
+}
+
+function syncExportUnits() {
+  const width = Number(elements.exportWidthInput.value);
+  const height = Number(elements.exportHeightInput.value);
+  const dpi = Number(elements.exportDpiInput.value) || 96;
+  const currentUnits = state.exportSyncSource || "px";
+  const pixelSize = convertExportDimensionsToPixels(width, height, currentUnits, dpi);
+  const convertedSize = convertPixelsToExportDimensions(pixelSize.width, pixelSize.height, elements.exportUnitsInput.value, dpi);
+  setExportInputStep(elements.exportUnitsInput.value);
+  elements.exportWidthInput.value = formatExportNumber(convertedSize.width);
+  elements.exportHeightInput.value = formatExportNumber(convertedSize.height);
+  state.exportSyncSource = elements.exportUnitsInput.value;
+}
+
+function syncExportDimensionPair(changedDimension) {
+  if (!elements.scaleProportionatelyInput.checked) {
+    state.exportSyncSource = elements.exportUnitsInput.value;
+    return;
+  }
+
+  const ratio = state.exportBaseWidthPx / state.exportBaseHeightPx || 1;
+  const width = Number(elements.exportWidthInput.value);
+  const height = Number(elements.exportHeightInput.value);
+
+  if (changedDimension === "width" && Number.isFinite(width) && width > 0) {
+    elements.exportHeightInput.value = formatExportNumber(width / ratio);
+  }
+
+  if (changedDimension === "height" && Number.isFinite(height) && height > 0) {
+    elements.exportWidthInput.value = formatExportNumber(height * ratio);
+  }
+
+  state.exportSyncSource = elements.exportUnitsInput.value;
+}
+
+function convertExportDimensionsToPixels(width, height, units, dpi) {
+  switch (units) {
+    case "in":
+      return { width: width * dpi, height: height * dpi };
+    case "cm":
+      return { width: (width / 2.54) * dpi, height: (height / 2.54) * dpi };
+    case "mm":
+      return { width: (width / 25.4) * dpi, height: (height / 25.4) * dpi };
+    case "pt":
+      return { width: (width / 72) * dpi, height: (height / 72) * dpi };
+    case "percent":
+      return {
+        width: state.exportBaseWidthPx * (width / 100),
+        height: state.exportBaseHeightPx * (height / 100)
+      };
+    default:
+      return { width, height };
+  }
+}
+
+function convertPixelsToExportDimensions(width, height, units, dpi) {
+  switch (units) {
+    case "in":
+      return { width: width / dpi, height: height / dpi };
+    case "cm":
+      return { width: (width / dpi) * 2.54, height: (height / dpi) * 2.54 };
+    case "mm":
+      return { width: (width / dpi) * 25.4, height: (height / dpi) * 25.4 };
+    case "pt":
+      return { width: (width / dpi) * 72, height: (height / dpi) * 72 };
+    case "percent":
+      return {
+        width: (width / state.exportBaseWidthPx) * 100,
+        height: (height / state.exportBaseHeightPx) * 100
+      };
+    default:
+      return { width, height };
+  }
+}
+
+function setExportInputStep(units) {
+  const step = units === "px" ? "1" : units === "percent" ? "1" : "0.01";
+  const min = units === "percent" ? "1" : "0.01";
+  elements.exportWidthInput.step = step;
+  elements.exportHeightInput.step = step;
+  elements.exportWidthInput.min = min;
+  elements.exportHeightInput.min = min;
+}
+
+function formatExportNumber(value) {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+
+  if (Math.abs(value - Math.round(value)) < 0.001) {
+    return String(Math.round(value));
+  }
+
+  return String(Number(value.toFixed(2)));
 }
 
 function loadSvgImage(source) {
@@ -979,6 +1092,97 @@ function prepareRenderedSvg(svg) {
   if (!svg.hasAttribute("focusable")) {
     svg.setAttribute("focusable", "true");
   }
+}
+
+async function writePngDpiMetadata(blob, dpi) {
+  const sourceBytes = new Uint8Array(await blob.arrayBuffer());
+  const pixelsPerMeter = Math.round(dpi * 39.3701);
+  const physChunkData = new Uint8Array(9);
+  writeUint32(physChunkData, 0, pixelsPerMeter);
+  writeUint32(physChunkData, 4, pixelsPerMeter);
+  physChunkData[8] = 1;
+  const physChunk = createPngChunk("pHYs", physChunkData);
+
+  const chunks = [];
+  let offset = 8;
+  let inserted = false;
+
+  while (offset < sourceBytes.length) {
+    const length = readUint32(sourceBytes, offset);
+    const chunkEnd = offset + 12 + length;
+    const type = readChunkType(sourceBytes, offset + 4);
+
+    if (type !== "pHYs") {
+      chunks.push(sourceBytes.slice(offset, chunkEnd));
+    }
+
+    if (!inserted && type === "IHDR") {
+      chunks.push(physChunk);
+      inserted = true;
+    }
+
+    offset = chunkEnd;
+  }
+
+  const finalLength = 8 + chunks.reduce((total, chunk) => total + chunk.length, 0);
+  const finalBytes = new Uint8Array(finalLength);
+  finalBytes.set(sourceBytes.slice(0, 8), 0);
+  let writeOffset = 8;
+
+  chunks.forEach((chunk) => {
+    finalBytes.set(chunk, writeOffset);
+    writeOffset += chunk.length;
+  });
+
+  return new Blob([finalBytes], { type: "image/png" });
+}
+
+function createPngChunk(type, data) {
+  const chunk = new Uint8Array(data.length + 12);
+  writeUint32(chunk, 0, data.length);
+  chunk.set([
+    type.charCodeAt(0),
+    type.charCodeAt(1),
+    type.charCodeAt(2),
+    type.charCodeAt(3)
+  ], 4);
+  chunk.set(data, 8);
+  const checksumSource = new Uint8Array(4 + data.length);
+  checksumSource.set(chunk.slice(4, 8), 0);
+  checksumSource.set(data, 4);
+  writeUint32(chunk, data.length + 8, crc32(checksumSource));
+  return chunk;
+}
+
+function readChunkType(bytes, offset) {
+  return String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+}
+
+function readUint32(bytes, offset) {
+  return ((bytes[offset] << 24) >>> 0)
+    + ((bytes[offset + 1] << 16) >>> 0)
+    + ((bytes[offset + 2] << 8) >>> 0)
+    + (bytes[offset + 3] >>> 0);
+}
+
+function writeUint32(bytes, offset, value) {
+  bytes[offset] = (value >>> 24) & 255;
+  bytes[offset + 1] = (value >>> 16) & 255;
+  bytes[offset + 2] = (value >>> 8) & 255;
+  bytes[offset + 3] = value & 255;
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    crc ^= bytes[index];
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc & 1) ? (0xedb88320 ^ (crc >>> 1)) : (crc >>> 1);
+    }
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 function triggerDownload(blob, filename) {

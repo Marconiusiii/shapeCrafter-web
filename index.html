@@ -448,11 +448,26 @@
 <option value="image/webp">WEBP</option>
 </select>
 
-<label for="exportWidthInput">Output Width in Pixels</label>
-<input id="exportWidthInput" name="width" type="number" min="1" value="1000" required>
+<label for="exportUnitsInput">Output Units</label>
+<select id="exportUnitsInput" name="units">
+<option value="px">Pixels</option>
+<option value="in">Inches</option>
+<option value="cm">Centimeters</option>
+<option value="mm">Millimeters</option>
+<option value="pt">Points</option>
+<option value="percent">Percent</option>
+</select>
 
-<label for="exportHeightInput">Output Height in Pixels</label>
-<input id="exportHeightInput" name="height" type="number" min="1" value="1000" required>
+<div class="toggle-row">
+<input id="scaleProportionatelyInput" name="scaleProportionately" type="checkbox" checked>
+<label for="scaleProportionatelyInput">Scale Proportionately</label>
+</div>
+
+<label for="exportWidthInput">Output Width</label>
+<input id="exportWidthInput" name="width" type="number" min="1" value="1000" step="1" required>
+
+<label for="exportHeightInput">Output Height</label>
+<input id="exportHeightInput" name="height" type="number" min="1" value="1000" step="1" required>
 
 <label for="exportDpiInput">DPI</label>
 <input id="exportDpiInput" name="dpi" type="number" min="1" value="96" required>
