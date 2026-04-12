@@ -760,9 +760,18 @@ function renderSvg() {
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(source, "image/svg+xml");
-  const parserError = doc.querySelector("parsererror");
-  if (parserError) {
-    presentRenderErrors(parseSvgErrors(parserError.textContent));
+  const parserErrors = extractParserErrorsFromDocument(doc);
+  if (parserErrors.length) {
+    presentRenderErrors(parserErrors);
+    return;
+  }
+
+  const parserErrorNode = findParserErrorNode(doc);
+  if (parserErrorNode) {
+    clearRenderErrors();
+    setActiveView("editor");
+    setStatus("The SVG could not be rendered.");
+    elements.svgEditor.focus();
     return;
   }
 
@@ -1181,7 +1190,14 @@ function restoreFocus() {
 }
 
 function parseSvgErrors(rawMessage) {
-  const normalized = rawMessage.replace(/\r/g, "");
+  const normalized = rawMessage
+    .replace(/\r/g, "")
+    .replace(/(This page contains the following errors:)\s*(error on line|from line|Below is a rendering)/gi, "$1\n$2")
+    .replace(/(error on line\s+\d+\s+at column\s+\d+:)\s*(.+?)\s*(Below is a rendering)/gi, "$1 $2\n$3")
+    .replace(/(from line\s+\d+,\s*column\s+\d+(?:\s+to\s+line\s+\d+,\s*column\s+\d+)?;?)\s*(.+?)\s*(Below is a rendering)/gi, "$1 $2\n$3")
+    .replace(/(error on line\s+\d+\s+at column\s+\d+:)/gi, "\n$1")
+    .replace(/(from line\s+\d+,\s*column\s+\d+(?:\s+to\s+line\s+\d+,\s*column\s+\d+)?;?)/gi, "\n$1")
+    .replace(/(Below is a rendering of the page up to the first error\.)/gi, "\n$1");
   const lines = normalized.split("\n");
   const errors = [];
   let pendingLocation = null;
@@ -1270,6 +1286,32 @@ function dedupeErrors(errors) {
   });
 }
 
+function findParserErrorNode(doc) {
+  if (!doc) {
+    return null;
+  }
+
+  return doc.querySelector("parsererror")
+    || doc.getElementsByTagName("parsererror")[0]
+    || (doc.documentElement && /parsererror/i.test(doc.documentElement.nodeName) ? doc.documentElement : null);
+}
+
+function extractParserErrorsFromDocument(doc) {
+  const parserErrorNode = findParserErrorNode(doc);
+  if (!parserErrorNode) {
+    return [];
+  }
+
+  const rawMessage = [
+    parserErrorNode.textContent || "",
+    parserErrorNode.innerText || ""
+  ]
+    .join("\n")
+    .trim();
+
+  return parseSvgErrors(rawMessage);
+}
+
 function presentRenderErrors(errors) {
   if (!errors.length) {
     clearRenderErrors();
@@ -1279,6 +1321,7 @@ function presentRenderErrors(errors) {
   }
 
   state.currentErrors = errors;
+  setActiveView("editor");
   renderErrorPanel();
   renderErrorDialog();
   setStatus("The SVG could not be rendered.");
