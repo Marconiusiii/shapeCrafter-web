@@ -46,11 +46,11 @@
 
 <main id="mainContent">
 <section class="intro" id="homeView">
-<h1>shapeCrafter</h1>
+<h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
 <p>shapeCrafter gives you a place to create hand-coded SVG graphics, render them instantly in the browser, and move directly to print or export.</p>
 <p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss only the artwork.</p>
 <div class="action-row">
-<button type="button" id="newFileButton">New File</button>
+<button type="button" id="newFileButton" aria-haspopup="dialog">New File</button>
 <button type="button" id="openShortcutsButton" aria-haspopup="dialog">Keyboard Shortcuts</button>
 </div>
 
@@ -108,10 +108,10 @@
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
 <div class="action-row">
 <button type="button" id="renderButton">Render SVG</button>
-<button type="button" id="jumpToLineButton">Jump to Line</button>
+<button type="button" id="jumpToLineButton" aria-haspopup="dialog">Jump to Line</button>
 <button type="button" id="saveButton">Save to Browser</button>
 <button type="button" id="downloadButton">Download SVG</button>
-<button type="button" id="deleteCurrentFileButton">Delete File</button>
+<button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button>
 </div>
 <p id="statusMessage" class="status-message"></p>
 </section>
@@ -308,12 +308,12 @@
 <button type="button" id="returnToCodeButton">Return to Code</button>
 <button type="button" id="printButton">Print</button>
 <button type="button" id="saveFromRenderButton">Save SVG</button>
-<button type="button" id="exportRasterButton">Export Raster</button>
+<button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button>
 <button type="button" id="backToHomeFromRenderButton">Back to Home</button>
 </div>
 </section>
 </div>
-<section id="renderCanvas" tabindex="-1" aria-label="Rendered Image">
+<section id="renderCanvas" tabindex="0" aria-label="Rendered Image">
 <h2 id="renderCanvasHeading" class="non-printing">Rendered Image</h2>
 </section>
 </div>
@@ -346,10 +346,10 @@
 <label for="svgHeightInput">Height</label>
 <input id="svgHeightInput" name="height" type="text" value="1100" required>
 
-<menu>
+<div class="dialog-actions">
 <button type="button" data-close-dialog="newFileDialog">Cancel</button>
 <button type="submit" value="default">Create File</button>
-</menu>
+</div>
 </form>
 </dialog>
 
@@ -358,10 +358,10 @@
 <h2 id="shapeDialogTitle" tabindex="-1">Add Shape</h2>
 <p id="shapeDialogDescription">Enter the attributes for the selected SVG primitive.</p>
 <div id="shapeFieldContainer" class="modal-fields"></div>
-<menu>
+<div class="dialog-actions">
 <button type="button" data-close-dialog="shapeDialog">Cancel</button>
 <button type="submit" value="default" id="shapeSubmitButton">Add Shape to Canvas</button>
-</menu>
+</div>
 </form>
 </dialog>
 
@@ -371,10 +371,10 @@
 <p>Enter a line number in the editor.</p>
 <label for="jumpLineInput">Line Number</label>
 <input id="jumpLineInput" name="line" type="number" min="1" required>
-<menu>
+<div class="dialog-actions">
 <button type="button" data-close-dialog="jumpDialog">Cancel</button>
 <button type="submit" value="default">Jump</button>
-</menu>
+</div>
 </form>
 </dialog>
 
@@ -383,47 +383,50 @@
 <h2 id="shortcutsDialogHeading" tabindex="-1">Keyboard Shortcuts</h2>
 <p>Set your preferred shortcuts for these shapeCrafter Code Editor actions.</p>
 
-<section aria-labelledby="jumpShortcutHeading">
-<h3 id="jumpShortcutHeading">Jump to Line</h3>
-<label for="shortcutModifierInput">Modifier Keys</label>
+<h3>Jump to Line</h3>
+<label for="shortcutModifierInput">Jump to Line Modifier Keys</label>
 <select id="shortcutModifierInput" name="jumpModifiers" class="shortcut-modifier-input">
+<option value="Alt">Alt</option>
+<option value="Control">Control</option>
+<option value="Shift">Shift</option>
 <option value="Control+Shift">Control+Shift</option>
 <option value="Alt+Shift">Alt+Shift</option>
 <option value="Alt+Control">Alt+Control</option>
 <option value="Alt+Control+Shift">Alt+Control+Shift</option>
 </select>
 
-<label for="shortcutKeyInput">Letter Key</label>
+<label for="shortcutKeyInput">Jump to Line Shortcut Key</label>
 <input id="shortcutKeyInput" name="jumpKey" type="text" maxlength="1" value="J" required>
-</section>
 
-<section aria-labelledby="indentShortcutHeading">
-<h3 id="indentShortcutHeading">Tab Indent</h3>
-<label for="indentModifierInput">Modifier Keys</label>
+<h3>Tab Indent</h3>
+<label for="indentModifierInput">Tab Indent Modifier Keys</label>
 <select id="indentModifierInput" name="indentModifiers" class="shortcut-modifier-input">
+<option value="Alt">Alt</option>
 <option value="Control">Control</option>
+<option value="Shift">Shift</option>
 <option value="Alt+Control">Alt+Control</option>
 <option value="Control+Shift">Control+Shift</option>
+<option value="Alt+Shift">Alt+Shift</option>
 <option value="Alt+Control+Shift">Alt+Control+Shift</option>
 </select>
 
-<label for="indentKeyInput">Key</label>
+<label for="indentKeyInput">Tab Indent Shortcut Key</label>
 <input id="indentKeyInput" name="indentKey" type="text" maxlength="1" value="]" required>
-</section>
 
-<section aria-labelledby="outdentShortcutHeading">
-<h3 id="outdentShortcutHeading">Tab Outdent</h3>
-<label for="outdentModifierInput">Modifier Keys</label>
+<h3>Tab Outdent</h3>
+<label for="outdentModifierInput">Tab Outdent Modifier Keys</label>
 <select id="outdentModifierInput" name="outdentModifiers" class="shortcut-modifier-input">
+<option value="Alt">Alt</option>
 <option value="Control">Control</option>
+<option value="Shift">Shift</option>
 <option value="Alt+Control">Alt+Control</option>
 <option value="Control+Shift">Control+Shift</option>
+<option value="Alt+Shift">Alt+Shift</option>
 <option value="Alt+Control+Shift">Alt+Control+Shift</option>
 </select>
 
-<label for="outdentKeyInput">Key</label>
+<label for="outdentKeyInput">Tab Outdent Shortcut Key</label>
 <input id="outdentKeyInput" name="outdentKey" type="text" maxlength="1" value="[" required>
-</section>
 
 <div class="dialog-actions">
 <button type="button" id="resetShortcutButton">Reset Default</button>
@@ -454,10 +457,10 @@
 <label for="exportDpiInput">DPI</label>
 <input id="exportDpiInput" name="dpi" type="number" min="1" value="96" required>
 
-<menu>
+<div class="dialog-actions">
 <button type="button" data-close-dialog="exportDialog">Cancel</button>
 <button type="submit" value="default">Export Raster</button>
-</menu>
+</div>
 </form>
 </dialog>
 
@@ -466,13 +469,25 @@
 <h2 id="errorDialogHeading" tabindex="-1">SVG Rendering Error</h2>
 <p id="errorDialogSummary">The SVG could not be rendered.</p>
 <ul id="errorDialogList"></ul>
-<menu>
+<div class="dialog-actions">
 <button type="button" data-close-dialog="errorDialog">Cancel</button>
 <button type="button" id="jumpToErrorButton">Jump to Error</button>
-</menu>
+</div>
 </form>
 </dialog>
 
+<dialog id="deleteDialog">
+<form method="dialog" id="deleteForm">
+<h2 id="deleteDialogHeading" tabindex="-1">Delete Saved File</h2>
+<p id="deleteDialogMessage">This file will be removed from this browser.</p>
+<div class="dialog-actions">
+<button type="button" data-close-dialog="deleteDialog">Cancel</button>
+<button type="button" id="confirmDeleteButton">Delete File</button>
+</div>
+</form>
+</dialog>
+
+<div id="toast" class="toast" hidden aria-hidden="true"></div>
 <div id="editorAnnouncer" class="sr-only" role="status"></div>
 
 <script src="scripts/app.js"></script>

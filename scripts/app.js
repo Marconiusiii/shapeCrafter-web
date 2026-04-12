@@ -65,14 +65,17 @@ const state = {
   files: [],
   currentErrors: [],
   lastFocusedTrigger: null,
+  pendingDeleteFileId: "",
   pendingPrimitive: null,
   pendingFocusTarget: null,
   shouldRestoreFocus: true,
-  shortcuts: loadShortcuts()
+  shortcuts: loadShortcuts(),
+  toastTimeoutId: 0
 };
 
 const elements = {
   homeView: document.getElementById("homeView"),
+  homeHeading: document.getElementById("homeHeading"),
   workspaceSection: document.getElementById("workspaceSection"),
   editorView: document.getElementById("editorView"),
   renderView: document.getElementById("renderView"),
@@ -126,16 +129,23 @@ const elements = {
   errorDialogSummary: document.getElementById("errorDialogSummary"),
   errorDialogList: document.getElementById("errorDialogList"),
   jumpToErrorButton: document.getElementById("jumpToErrorButton"),
+  deleteDialog: document.getElementById("deleteDialog"),
+  deleteForm: document.getElementById("deleteForm"),
+  deleteDialogHeading: document.getElementById("deleteDialogHeading"),
+  deleteDialogMessage: document.getElementById("deleteDialogMessage"),
+  confirmDeleteButton: document.getElementById("confirmDeleteButton"),
   exportTypeInput: document.getElementById("exportTypeInput"),
   exportWidthInput: document.getElementById("exportWidthInput"),
   exportHeightInput: document.getElementById("exportHeightInput"),
-  exportDpiInput: document.getElementById("exportDpiInput")
+  exportDpiInput: document.getElementById("exportDpiInput"),
+  toast: document.getElementById("toast")
 };
 
 document.getElementById("copyrightYear").textContent = new Date().getFullYear();
 
 document.getElementById("newFileButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
+  prepareNewFileDialog();
   openDialog(elements.newFileDialog, elements.newFileDialogHeading);
 });
 
@@ -159,10 +169,11 @@ elements.renameCurrentFileButton.addEventListener("click", () => {
 });
 elements.deleteCurrentFileButton.addEventListener("click", () => {
   if (state.currentFileId) {
-    deleteFile(state.currentFileId);
+    openDeleteDialog(state.currentFileId, elements.deleteCurrentFileButton);
   }
 });
 elements.jumpToErrorButton.addEventListener("click", jumpToCurrentError);
+elements.confirmDeleteButton.addEventListener("click", confirmDeleteFile);
 document.getElementById("jumpToLineButton").addEventListener("click", (event) => {
   state.lastFocusedTrigger = event.currentTarget;
   openDialog(elements.jumpDialog, elements.jumpDialogHeading);
@@ -182,6 +193,16 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
     const dialog = document.getElementById(button.dataset.closeDialog);
     closeDialog(dialog);
   });
+});
+
+elements.fileNameInput.addEventListener("input", () => {
+  elements.fileNameInput.setCustomValidity("");
+});
+
+elements.fileNameInput.addEventListener("invalid", () => {
+  if (!elements.fileNameInput.value.trim()) {
+    elements.fileNameInput.setCustomValidity("Please provide a filename");
+  }
 });
 
 elements.newFileForm.addEventListener("submit", (event) => {
@@ -226,7 +247,7 @@ elements.jumpForm.addEventListener("submit", (event) => {
   focusEditorLine(line);
 });
 
-[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.exportDialog, elements.errorDialog].forEach((dialog) => {
+[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.exportDialog, elements.errorDialog, elements.deleteDialog].forEach((dialog) => {
   dialog.addEventListener("close", handleDialogClose);
 });
 
@@ -298,6 +319,12 @@ function openShortcutsDialog() {
   openDialog(elements.shortcutsDialog, elements.shortcutsDialogHeading);
 }
 
+function prepareNewFileDialog() {
+  elements.newFileForm.reset();
+  elements.fileNameInput.value = "";
+  elements.fileNameInput.setCustomValidity("");
+}
+
 function openDialog(dialog, focusTarget) {
   state.pendingFocusTarget = null;
   state.shouldRestoreFocus = true;
@@ -329,6 +356,18 @@ function handleDialogClose() {
   }
 
   updateDocumentTitle();
+}
+
+function openDeleteDialog(fileId, trigger) {
+  const file = loadFiles().find((item) => item.id === fileId);
+  if (!file) {
+    return;
+  }
+
+  state.pendingDeleteFileId = fileId;
+  state.lastFocusedTrigger = trigger;
+  elements.deleteDialogMessage.textContent = `Delete ${file.name} from this browser?`;
+  openDialog(elements.deleteDialog, elements.deleteDialogHeading);
 }
 
 function syncShortcutInputs() {
@@ -553,7 +592,7 @@ function focusEditorLine(lineNumber) {
   }
 
   editor.focus();
-  editor.setSelectionRange(index, index + lines[targetLine - 1].length);
+  editor.setSelectionRange(index, index);
   editor.scrollTop = (targetLine - 1) * 24;
   setStatus(`Moved to line ${targetLine}.`);
 }
@@ -618,7 +657,8 @@ function renderFileList() {
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
       deleteButton.textContent = `Delete ${file.name}`;
-      deleteButton.addEventListener("click", () => deleteFile(file.id));
+      deleteButton.setAttribute("aria-haspopup", "dialog");
+      deleteButton.addEventListener("click", () => openDeleteDialog(file.id, deleteButton));
 
       actions.append(renameButton, deleteButton);
       item.append(openButton, actions);
@@ -674,11 +714,6 @@ function deleteFile(fileId) {
     return;
   }
 
-  const confirmed = window.confirm(`Delete ${file.name} from local storage?`);
-  if (!confirmed) {
-    return;
-  }
-
   const nextFiles = files.filter((item) => item.id !== fileId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextFiles));
   state.files = nextFiles;
@@ -693,10 +728,18 @@ function deleteFile(fileId) {
     elements.svgEditor.value = "";
     elements.renderCanvas.replaceChildren(elements.renderCanvasHeading);
     setActiveView("home");
+    focusActiveHeading(elements.homeHeading);
   }
 
   renderFileList();
   setStatus(`${file.name} deleted.`);
+}
+
+function confirmDeleteFile() {
+  const fileId = state.pendingDeleteFileId;
+  state.pendingDeleteFileId = "";
+  closeDialog(elements.deleteDialog, { restoreFocus: false });
+  deleteFile(fileId);
 }
 
 function saveCurrentFile() {
@@ -718,6 +761,8 @@ function saveCurrentFile() {
   updateWorkspaceMeta(file);
   renderFileList();
   setStatus(`${file.name} saved to this browser.`);
+  announceEditorChange(`${file.name} saved`);
+  showToast(`${file.name} saved`);
 }
 
 function upsertFile(file) {
@@ -789,6 +834,7 @@ function renderSvg() {
   }
 
   sanitizeSvg(svg);
+  prepareRenderedSvg(svg);
   clearRenderErrors();
   elements.renderCanvas.replaceChildren(elements.renderCanvasHeading, svg.cloneNode(true));
   setActiveView("render");
@@ -805,7 +851,7 @@ function returnToEditor() {
 function returnHome() {
   setActiveView("home");
   clearStatus();
-  document.getElementById("shapeCrafterHomeLink").focus();
+  focusActiveHeading(elements.homeHeading);
 }
 
 function setActiveView(viewName) {
@@ -926,6 +972,13 @@ function sanitizeSvg(svg) {
       }
     });
   });
+}
+
+function prepareRenderedSvg(svg) {
+  svg.setAttribute("tabindex", "0");
+  if (!svg.hasAttribute("focusable")) {
+    svg.setAttribute("focusable", "true");
+  }
 }
 
 function triggerDownload(blob, filename) {
@@ -1176,6 +1229,23 @@ function setStatus(message) {
 
 function clearStatus() {
   elements.statusMessage.textContent = "";
+}
+
+function showToast(message) {
+  window.clearTimeout(state.toastTimeoutId);
+  elements.toast.textContent = message;
+  elements.toast.hidden = false;
+  requestAnimationFrame(() => {
+    elements.toast.classList.add("is-visible");
+  });
+
+  state.toastTimeoutId = window.setTimeout(() => {
+    elements.toast.classList.remove("is-visible");
+    window.setTimeout(() => {
+      elements.toast.hidden = true;
+      elements.toast.textContent = "";
+    }, 200);
+  }, 6000);
 }
 
 function clearMessages() {
