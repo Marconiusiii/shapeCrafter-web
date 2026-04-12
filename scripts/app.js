@@ -46,7 +46,7 @@ const PRIMITIVES = [
 ];
 
 const defaultShortcut = {
-  modifiers: "Alt+Shift",
+  modifiers: "Control+Shift",
   key: "J"
 };
 
@@ -67,6 +67,7 @@ const elements = {
   editorView: document.getElementById("editorView"),
   renderView: document.getElementById("renderView"),
   renderCanvas: document.getElementById("renderCanvas"),
+  renderCanvasHeading: document.getElementById("renderCanvasHeading"),
   renderViewHeading: document.getElementById("renderViewHeading"),
   renderMeta: document.getElementById("renderMeta"),
   currentFileHeading: document.getElementById("currentFileHeading"),
@@ -264,6 +265,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 initPrimitiveList();
+updateShortcutModifierLabels();
 renderFileList();
 setActiveView("home");
 
@@ -308,6 +310,15 @@ function handleDialogClose() {
 function syncShortcutInputs() {
   elements.shortcutModifierInput.value = state.shortcuts.modifiers;
   elements.shortcutKeyInput.value = state.shortcuts.key;
+}
+
+function updateShortcutModifierLabels() {
+  [...elements.shortcutModifierInput.options].forEach((option) => {
+    option.textContent = option.value
+      .split("+")
+      .map((modifier) => mapModifierLabel(modifier))
+      .join("+");
+  });
 }
 
 function initPrimitiveList() {
@@ -650,7 +661,7 @@ function deleteFile(fileId) {
     elements.deleteCurrentFileButton.textContent = "Delete File";
     elements.renderViewHeading.textContent = "Rendered SVG";
     elements.svgEditor.value = "";
-    elements.renderCanvas.replaceChildren();
+    elements.renderCanvas.replaceChildren(elements.renderCanvasHeading);
     setActiveView("home");
   }
 
@@ -729,8 +740,10 @@ function renderSvg() {
   if (!svg || svg.nodeName.toLowerCase() !== "svg") {
     presentRenderErrors([
       {
-        line: null,
-        message: "The document must begin with a valid <svg> root element."
+        line: 1,
+        column: 1,
+        rawMessage: "The document must begin with a valid <svg> root element.",
+        plainLanguage: "Make sure the file starts with an opening <svg> tag and that it is written correctly."
       }
     ]);
     return;
@@ -738,7 +751,7 @@ function renderSvg() {
 
   sanitizeSvg(svg);
   clearRenderErrors();
-  elements.renderCanvas.replaceChildren(svg.cloneNode(true));
+  elements.renderCanvas.replaceChildren(elements.renderCanvasHeading, svg.cloneNode(true));
   setActiveView("render");
   elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
   focusActiveHeading(elements.renderViewHeading);
@@ -900,17 +913,37 @@ function mimeToExtension(type) {
 
 function loadShortcuts() {
   try {
-    return {
+    const savedShortcut = {
       ...defaultShortcut,
       ...JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || "{}")
     };
+    if (savedShortcut.modifiers === "Alt+Shift" && savedShortcut.key.toUpperCase() === "J") {
+      return { ...defaultShortcut };
+    }
+    return savedShortcut;
   } catch (error) {
     return { ...defaultShortcut };
   }
 }
 
 function describeShortcut(shortcut) {
-  return `${shortcut.modifiers}+${shortcut.key.toUpperCase()}`;
+  const modifierLabel = shortcut.modifiers
+    .split("+")
+    .map((modifier) => mapModifierLabel(modifier))
+    .join("+");
+  return `${modifierLabel}+${shortcut.key.toUpperCase()}`;
+}
+
+function mapModifierLabel(modifier) {
+  if (modifier === "Alt") {
+    return isApplePlatform() ? "Option" : "Alt";
+  }
+
+  return modifier;
+}
+
+function isApplePlatform() {
+  return /Mac|iPhone|iPad|iPod/i.test(window.navigator.platform || window.navigator.userAgent);
 }
 
 function updateDocumentTitle(stateOverride = {}) {
@@ -960,7 +993,8 @@ function getOpenDialogId() {
     elements.shapeDialog,
     elements.jumpDialog,
     elements.shortcutsDialog,
-    elements.exportDialog
+    elements.exportDialog,
+    elements.errorDialog
   ];
   const openDialog = dialogs.find((dialog) => dialog.open);
   return openDialog ? openDialog.id : "";
@@ -1084,17 +1118,12 @@ function restoreFocus() {
 
 function parseSvgErrors(rawMessage) {
   const normalized = rawMessage.replace(/\r/g, "");
-  const lines = normalized
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const lines = normalized.split("\n");
   const errors = [];
+  let pendingLocation = null;
   const ignoredPatterns = [
     /^this page contains the following errors:/i,
-    /^below is a rendering of the page up to the first error\./i,
-    /^from line \d+, column \d+;/i,
-    /^parser error/i,
-    /^xml parsing error/i
+    /^below is a rendering of the page up to the first error\./i
   ];
 
   lines.forEach((line) => {
@@ -1107,34 +1136,54 @@ function parseSvgErrors(rawMessage) {
       return;
     }
 
-    const lineMatch = line.match(/line\s+(\d+)/i);
-    const columnMatch = line.match(/column\s+(\d+)/i);
-    const rawDetail = extractRawParserDetail(cleaned);
-    if (!rawDetail) {
-      return;
-    }
-
-    const plainLanguage = describeParserMessage(rawDetail);
-
-    if (!lineMatch) {
-      return;
-    }
-
-    const previousError = errors[errors.length - 1];
-    if (previousError && !columnMatch && shouldAppendToPreviousError(rawDetail) && previousError.line === Number(lineMatch[1])) {
-      previousError.rawMessage = `${previousError.rawMessage} ${rawDetail}`.trim();
-      if (plainLanguage && !previousError.plainLanguage) {
-        previousError.plainLanguage = plainLanguage;
+    const rangeLocationMatch = cleaned.match(/^from line\s+(\d+),\s*column\s+(\d+)(?:\s+to\s+line\s+\d+,\s*column\s+\d+)?;?\s*(.*)$/i);
+    if (rangeLocationMatch) {
+      pendingLocation = {
+        line: Number(rangeLocationMatch[1]),
+        column: Number(rangeLocationMatch[2])
+      };
+      const detail = cleanParserDetail(rangeLocationMatch[3] || "");
+      if (detail) {
+        errors.push({
+          line: pendingLocation.line,
+          column: pendingLocation.column,
+          rawMessage: detail
+        });
+        pendingLocation = null;
       }
       return;
     }
 
+    const inlineLocationMatch = cleaned.match(/^error on line\s+(\d+)\s+at column\s+(\d+):\s*(.*)$/i);
+    if (inlineLocationMatch) {
+      const detail = cleanParserDetail(inlineLocationMatch[3] || "");
+      if (!detail) {
+        return;
+      }
+      errors.push({
+        line: Number(inlineLocationMatch[1]),
+        column: Number(inlineLocationMatch[2]),
+        rawMessage: detail
+      });
+      pendingLocation = null;
+      return;
+    }
+
+    if (!pendingLocation) {
+      return;
+    }
+
+    const detail = cleanParserDetail(cleaned);
+    if (!detail) {
+      return;
+    }
+
     errors.push({
-      line: lineMatch ? Number(lineMatch[1]) : null,
-      column: columnMatch ? Number(columnMatch[1]) : null,
-      rawMessage: rawDetail,
-      plainLanguage
+      line: pendingLocation.line,
+      column: pendingLocation.column,
+      rawMessage: detail
     });
+    pendingLocation = null;
   });
 
   return dedupeErrors(errors);
@@ -1208,58 +1257,16 @@ function renderErrorDialog() {
 }
 
 function formatErrorItem(error) {
-  const location = error.line
-    ? `Line ${error.line}${error.column ? `, column ${error.column}` : ""}`
-    : "Location unavailable";
-  if (error.plainLanguage && error.plainLanguage !== error.rawMessage) {
-    return `${location}: ${error.rawMessage}. ${error.plainLanguage}`;
-  }
-  if (error.line) {
-    return `${location}: ${error.rawMessage}`;
-  }
-  return error.rawMessage;
+  return `Line ${error.line}${error.column ? `, column ${error.column}` : ""}: ${error.rawMessage}`;
 }
 
-function extractRawParserDetail(message) {
-  const withoutColumnLead = message.replace(/^error on line \d+ at column \d+:\s*/i, "").trim();
-  const withoutLeadingPunctuation = withoutColumnLead.replace(/^[.:;\-]+/, "").trim();
-  if (!withoutLeadingPunctuation) {
-    return "";
-  }
-
-  return withoutLeadingPunctuation.replace(/\.$/, "");
-}
-
-function describeParserMessage(message) {
-  if (/^attvalue:/i.test(message)) {
-    return "The attribute value is not properly closed. Check for a missing quotation mark.";
-  }
-
-  if (/^attributes construct error/i.test(message)) {
-    return "An attribute is malformed. Check the attribute name, equals sign, and quotation marks.";
-  }
-
-  if (/^opening and ending tag mismatch/i.test(message)) {
-    return "The closing tag does not match the element that was opened.";
-  }
-
-  if (/^expected/i.test(message)) {
-    return "The browser expected different SVG syntax at this location.";
-  }
-
-  if (/^extra content/i.test(message)) {
-    return "There is unexpected extra content after the point where parsing failed.";
-  }
-
-  if (/^premature end/i.test(message)) {
-    return "The SVG appears to end before the current element or attribute is finished.";
-  }
-
-  return "";
-}
-
-function shouldAppendToPreviousError(message) {
-  return /^(expected|opening and ending tag mismatch|entity|extra content|premature end|specification mandates)/i.test(message);
+function cleanParserDetail(message) {
+  return message
+    .replace(/^error on line \d+ at column \d+:\s*/i, "")
+    .replace(/^parser error\s*:?\s*/i, "")
+    .replace(/^xml parsing error\s*:?\s*/i, "")
+    .replace(/^[.:;\-]+/, "")
+    .trim();
 }
 
 function clearRenderErrors() {
