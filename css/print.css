@@ -1,31 +1,50 @@
+html,
 body {
-  margin: 0;
-  background: white;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #fff !important;
 }
 
-header,
-footer,
-.intro,
-#editorView,
+body * {
+  visibility: hidden !important;
+}
+
+#renderCanvas,
+#renderCanvas * {
+  visibility: visible !important;
+}
+
+#renderCanvas {
+  position: absolute !important;
+  inset: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+#renderCanvasHeading,
 .non-printing {
   display: none !important;
 }
 
-main,
-#workspaceSection,
-#renderView,
-#renderCanvas {
-  max-width: none;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
 #renderCanvas svg {
-  max-width: none;
-  width: auto;
-  height: auto;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 @page {
