@@ -1116,8 +1116,12 @@ function parseSvgErrors(rawMessage) {
 
     const plainLanguage = describeParserMessage(rawDetail);
 
+    if (!lineMatch) {
+      return;
+    }
+
     const previousError = errors[errors.length - 1];
-    if (previousError && !lineMatch && !columnMatch && shouldAppendToPreviousError(rawDetail)) {
+    if (previousError && !columnMatch && shouldAppendToPreviousError(rawDetail) && previousError.line === Number(lineMatch[1])) {
       previousError.rawMessage = `${previousError.rawMessage} ${rawDetail}`.trim();
       if (plainLanguage && !previousError.plainLanguage) {
         previousError.plainLanguage = plainLanguage;
@@ -1132,15 +1136,6 @@ function parseSvgErrors(rawMessage) {
       plainLanguage
     });
   });
-
-  if (!errors.length) {
-    errors.push({
-      line: null,
-      column: null,
-      rawMessage: "The browser reported a parsing error but did not provide more detail.",
-      plainLanguage: "The SVG contains a parsing error that the browser could not fully describe."
-    });
-  }
 
   return dedupeErrors(errors);
 }
@@ -1163,6 +1158,13 @@ function dedupeErrors(errors) {
 }
 
 function presentRenderErrors(errors) {
+  if (!errors.length) {
+    clearRenderErrors();
+    setStatus("The SVG could not be rendered.");
+    elements.svgEditor.focus();
+    return;
+  }
+
   state.currentErrors = errors;
   renderErrorPanel();
   renderErrorDialog();
