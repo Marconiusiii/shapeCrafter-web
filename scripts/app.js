@@ -1109,21 +1109,27 @@ function parseSvgErrors(rawMessage) {
 
     const lineMatch = line.match(/line\s+(\d+)/i);
     const columnMatch = line.match(/column\s+(\d+)/i);
-    const message = normalizeParserMessage(cleaned);
-    if (!message) {
+    const rawDetail = extractRawParserDetail(cleaned);
+    if (!rawDetail) {
       return;
     }
 
+    const plainLanguage = describeParserMessage(rawDetail);
+
     const previousError = errors[errors.length - 1];
-    if (previousError && !lineMatch && !columnMatch && shouldAppendToPreviousError(message)) {
-      previousError.message = `${previousError.message} ${message}`.trim();
+    if (previousError && !lineMatch && !columnMatch && shouldAppendToPreviousError(rawDetail)) {
+      previousError.rawMessage = `${previousError.rawMessage} ${rawDetail}`.trim();
+      if (plainLanguage && !previousError.plainLanguage) {
+        previousError.plainLanguage = plainLanguage;
+      }
       return;
     }
 
     errors.push({
       line: lineMatch ? Number(lineMatch[1]) : null,
       column: columnMatch ? Number(columnMatch[1]) : null,
-      message
+      rawMessage: rawDetail,
+      plainLanguage
     });
   });
 
@@ -1131,7 +1137,8 @@ function parseSvgErrors(rawMessage) {
     errors.push({
       line: null,
       column: null,
-      message: "The SVG contains a parsing error that the browser could not fully describe."
+      rawMessage: "The browser reported a parsing error but did not provide more detail.",
+      plainLanguage: "The SVG contains a parsing error that the browser could not fully describe."
     });
   }
 
@@ -1141,7 +1148,7 @@ function parseSvgErrors(rawMessage) {
 function dedupeErrors(errors) {
   const seen = new Set();
   return errors.filter((error) => {
-    const normalizedMessage = error.message
+    const normalizedMessage = error.rawMessage
       .replace(/\s+/g, " ")
       .replace(/^\W+/, "")
       .trim()
@@ -1199,36 +1206,54 @@ function renderErrorDialog() {
 }
 
 function formatErrorItem(error) {
-  if (error.line) {
-    return `Line ${error.line}${error.column ? `, column ${error.column}` : ""}: ${error.message}`;
+  const location = error.line
+    ? `Line ${error.line}${error.column ? `, column ${error.column}` : ""}`
+    : "Location unavailable";
+  if (error.plainLanguage && error.plainLanguage !== error.rawMessage) {
+    return `${location}: ${error.rawMessage}. ${error.plainLanguage}`;
   }
-  return error.message;
+  if (error.line) {
+    return `${location}: ${error.rawMessage}`;
+  }
+  return error.rawMessage;
 }
 
-function normalizeParserMessage(message) {
+function extractRawParserDetail(message) {
   const withoutColumnLead = message.replace(/^error on line \d+ at column \d+:\s*/i, "").trim();
   const withoutLeadingPunctuation = withoutColumnLead.replace(/^[.:;\-]+/, "").trim();
   if (!withoutLeadingPunctuation) {
     return "";
   }
 
-  if (/^attvalue:/i.test(withoutLeadingPunctuation)) {
-    return "Attribute value is not properly closed.";
-  }
-
-  if (/^attributes construct error/i.test(withoutLeadingPunctuation)) {
-    return "An attribute is malformed.";
-  }
-
-  if (/^opening and ending tag mismatch/i.test(withoutLeadingPunctuation)) {
-    return withoutLeadingPunctuation.replace(/\.$/, "");
-  }
-
-  if (/^expected/i.test(withoutLeadingPunctuation)) {
-    return withoutLeadingPunctuation.replace(/\.$/, "");
-  }
-
   return withoutLeadingPunctuation.replace(/\.$/, "");
+}
+
+function describeParserMessage(message) {
+  if (/^attvalue:/i.test(message)) {
+    return "The attribute value is not properly closed. Check for a missing quotation mark.";
+  }
+
+  if (/^attributes construct error/i.test(message)) {
+    return "An attribute is malformed. Check the attribute name, equals sign, and quotation marks.";
+  }
+
+  if (/^opening and ending tag mismatch/i.test(message)) {
+    return "The closing tag does not match the element that was opened.";
+  }
+
+  if (/^expected/i.test(message)) {
+    return "The browser expected different SVG syntax at this location.";
+  }
+
+  if (/^extra content/i.test(message)) {
+    return "There is unexpected extra content after the point where parsing failed.";
+  }
+
+  if (/^premature end/i.test(message)) {
+    return "The SVG appears to end before the current element or attribute is finished.";
+  }
+
+  return "";
 }
 
 function shouldAppendToPreviousError(message) {
