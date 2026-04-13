@@ -13,6 +13,7 @@ body {
   min-height: 100vh;
   background: #f3f5f7;
   color: #111;
+  color-scheme: light dark;
 }
 
 #skip-link {
@@ -475,5 +476,113 @@ code {
     left: 0.75rem;
     bottom: 0.75rem;
     max-width: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #121619;
+    color: #f3f6f8;
+  }
+
+  .site-header {
+    border-bottom-color: #e6eef2;
+  }
+
+  .site-footer {
+    border-top-color: #e6eef2;
+  }
+
+  .site-header__nav a,
+  .intro,
+  .primitive-panel,
+  .editor-panel,
+  .preview-panel,
+  .reference-panel,
+  #renderCanvas,
+  dialog,
+  button {
+    background: #1b2328;
+    color: #f3f6f8;
+    border-color: #e6eef2;
+  }
+
+  #workspaceSection {
+    background: #1f2a31;
+    border-color: #e6eef2;
+  }
+
+  .primitive-panel details,
+  #svgCodeReference details,
+  #helpDetails,
+  #fileLibraryDetails,
+  code,
+  textarea,
+  input,
+  select,
+  #fileTable th,
+  #fileTable td {
+    background: #162026;
+    color: #f3f6f8;
+    border-color: #a9bac3;
+  }
+
+  .primitive-panel details[open],
+  #svgCodeReference details[open],
+  #helpDetails[open],
+  #fileLibraryDetails[open] {
+    background: #1b2328;
+  }
+
+  #fileMeta,
+  #renderMeta,
+  #fileLibrarySummary,
+  #fileTable caption {
+    color: #d7e2e8;
+  }
+
+  .editor-panel > .action-row button:first-child,
+  .non-printing button:nth-child(2) {
+    background: #f3f6f8;
+    color: #121619;
+  }
+
+  button:hover,
+  button:focus,
+  .site-header__nav a:hover,
+  .site-header__nav a:focus {
+    outline-color: #56d6d6;
+  }
+
+  #statusMessage {
+    background: #0f2c2c;
+    border-left-color: #56d6d6;
+    color: #ecffff;
+  }
+
+  #errorPanel {
+    background: #321615;
+    border-left-color: #ff8f82;
+    color: #fff1ef;
+  }
+
+  .toast {
+    background: #1b2328;
+    color: #f3f6f8;
+    border-color: #e6eef2;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
+  }
+
+  #renderCanvas {
+    background: #24313a;
+  }
+
+  #renderCanvas svg {
+    background: #ffffff;
+    box-shadow: 0 0 0 2px #e6eef2;
+  }
+
+  dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
   }
 }
