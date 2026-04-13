@@ -452,10 +452,36 @@
 <label for="outdentKeyInput">Tab Outdent Shortcut Key</label>
 <input id="outdentKeyInput" name="outdentKey" type="text" maxlength="1" value="[" required>
 
+<h3>Quick Add</h3>
+<label for="quickAddModifierInput">Quick Add Modifier Keys</label>
+<select id="quickAddModifierInput" name="quickAddModifiers" class="shortcut-modifier-input">
+<option value="Alt">Alt</option>
+<option value="Control">Control</option>
+<option value="Shift">Shift</option>
+<option value="Alt+Control">Alt+Control</option>
+<option value="Control+Shift">Control+Shift</option>
+<option value="Alt+Shift">Alt+Shift</option>
+<option value="Alt+Control+Shift">Alt+Control+Shift</option>
+</select>
+
+<label for="quickAddKeyInput">Quick Add Shortcut Key</label>
+<input id="quickAddKeyInput" name="quickAddKey" type="text" maxlength="1" value="A" required>
+
 <div class="dialog-actions">
 <button type="button" id="resetShortcutButton">Reset Default</button>
 <button type="button" data-close-dialog="shortcutsDialog">Cancel</button>
 <button type="submit" value="default">Save Shortcuts</button>
+</div>
+</form>
+</dialog>
+
+<dialog id="quickAddDialog">
+<form method="dialog" id="quickAddForm">
+<h2 id="quickAddDialogHeading" tabindex="-1">Quick Add SVG Element</h2>
+<p>Choose an SVG element to insert at the current cursor position.</p>
+<ul id="quickAddList" class="quick-add-list"></ul>
+<div class="dialog-actions">
+<button type="button" data-close-dialog="quickAddDialog">Cancel</button>
 </div>
 </form>
 </dialog>

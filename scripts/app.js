@@ -50,6 +50,10 @@ const defaultShortcuts = {
 		modifiers: "Control+Shift",
 		key: "J"
 	},
+	quickAdd: {
+		modifiers: "Control+Shift",
+		key: "A"
+	},
 	indent: {
 		modifiers: "Control",
 		key: "]"
@@ -120,10 +124,16 @@ const elements = {
 	shortcutsDialogHeading: document.getElementById("shortcutsDialogHeading"),
 	shortcutModifierInput: document.getElementById("shortcutModifierInput"),
 	shortcutKeyInput: document.getElementById("shortcutKeyInput"),
+	quickAddModifierInput: document.getElementById("quickAddModifierInput"),
+	quickAddKeyInput: document.getElementById("quickAddKeyInput"),
 	indentModifierInput: document.getElementById("indentModifierInput"),
 	indentKeyInput: document.getElementById("indentKeyInput"),
 	outdentModifierInput: document.getElementById("outdentModifierInput"),
 	outdentKeyInput: document.getElementById("outdentKeyInput"),
+	quickAddDialog: document.getElementById("quickAddDialog"),
+	quickAddForm: document.getElementById("quickAddForm"),
+	quickAddDialogHeading: document.getElementById("quickAddDialogHeading"),
+	quickAddList: document.getElementById("quickAddList"),
 	exportDialog: document.getElementById("exportDialog"),
 	exportDialogHeading: document.getElementById("exportDialogHeading"),
 	exportForm: document.getElementById("exportForm"),
@@ -259,7 +269,7 @@ elements.jumpForm.addEventListener("submit", (event) => {
 	focusEditorLine(line);
 });
 
-[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.exportDialog, elements.errorDialog, elements.deleteDialog].forEach((dialog) => {
+[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.quickAddDialog, elements.exportDialog, elements.errorDialog, elements.deleteDialog].forEach((dialog) => {
 	dialog.addEventListener("close", handleDialogClose);
 });
 
@@ -281,6 +291,10 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
 			modifiers: elements.shortcutModifierInput.value,
 			key: elements.shortcutKeyInput.value.trim().toUpperCase() || defaultShortcuts.jumpToLine.key
 		},
+		quickAdd: {
+			modifiers: elements.quickAddModifierInput.value,
+			key: elements.quickAddKeyInput.value.trim().toUpperCase() || defaultShortcuts.quickAdd.key
+		},
 		indent: {
 			modifiers: elements.indentModifierInput.value,
 			key: elements.indentKeyInput.value.trim() || defaultShortcuts.indent.key
@@ -292,7 +306,7 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
 	};
 	localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(state.shortcuts));
 	closeDialog(elements.shortcutsDialog);
-	setStatus(`Shortcuts saved. Jump to Line: ${describeShortcut(state.shortcuts.jumpToLine)}. Tab Indent: ${describeShortcut(state.shortcuts.indent)}. Tab Outdent: ${describeShortcut(state.shortcuts.outdent)}.`);
+	setStatus(`Shortcuts saved. Jump to Line: ${describeShortcut(state.shortcuts.jumpToLine)}. Quick Add: ${describeShortcut(state.shortcuts.quickAdd)}. Tab Indent: ${describeShortcut(state.shortcuts.indent)}. Tab Outdent: ${describeShortcut(state.shortcuts.outdent)}.`);
 });
 
 elements.svgEditor.addEventListener("input", () => {
@@ -318,10 +332,18 @@ document.addEventListener("keydown", (event) => {
 		event.preventDefault();
 		state.lastFocusedTrigger = document.activeElement;
 		openDialog(elements.jumpDialog, elements.jumpDialogHeading);
+		return;
+	}
+
+	if (matchesShortcut(event, state.shortcuts.quickAdd)) {
+		event.preventDefault();
+		state.lastFocusedTrigger = document.activeElement;
+		openQuickAddDialog();
 	}
 });
 
 initPrimitiveList();
+	initQuickAddList();
 updateShortcutModifierLabels();
 renderFileList();
 setActiveView("home");
@@ -329,6 +351,10 @@ setActiveView("home");
 function openShortcutsDialog() {
 	syncShortcutInputs();
 	openDialog(elements.shortcutsDialog, elements.shortcutsDialogHeading);
+}
+
+function openQuickAddDialog() {
+	openDialog(elements.quickAddDialog, elements.quickAddDialogHeading);
 }
 
 function prepareNewFileDialog() {
@@ -385,6 +411,8 @@ function openDeleteDialog(fileId, trigger) {
 function syncShortcutInputs() {
 	elements.shortcutModifierInput.value = state.shortcuts.jumpToLine.modifiers;
 	elements.shortcutKeyInput.value = state.shortcuts.jumpToLine.key;
+	elements.quickAddModifierInput.value = state.shortcuts.quickAdd.modifiers;
+	elements.quickAddKeyInput.value = state.shortcuts.quickAdd.key;
 	elements.indentModifierInput.value = state.shortcuts.indent.modifiers;
 	elements.indentKeyInput.value = state.shortcuts.indent.key;
 	elements.outdentModifierInput.value = state.shortcuts.outdent.modifiers;
@@ -417,16 +445,41 @@ function initPrimitiveList() {
 				return;
 			}
 
-			const markup = buildPrimitiveMarkup(primitive);
-			insertAtCursor(markup);
-			setStatus(`Inserted <${primitive.name}>.`);
-			focusEditorOnInsertedMarkup(markup);
+			insertPrimitiveIntoEditor(primitive);
 		});
 		listItem.appendChild(button);
 		fragment.appendChild(listItem);
 	});
 
 	elements.primitiveList.appendChild(fragment);
+}
+
+function initQuickAddList() {
+	const fragment = document.createDocumentFragment();
+
+	PRIMITIVES.forEach((primitive) => {
+		const listItem = document.createElement("li");
+		const button = document.createElement("button");
+		button.type = "button";
+		button.textContent = `<${primitive.name}>`;
+		button.addEventListener("click", () => {
+			closeDialog(elements.quickAddDialog, { restoreFocus: false });
+			requestAnimationFrame(() => {
+				insertPrimitiveIntoEditor(primitive);
+			});
+		});
+		listItem.appendChild(button);
+		fragment.appendChild(listItem);
+	});
+
+	elements.quickAddList.appendChild(fragment);
+}
+
+function insertPrimitiveIntoEditor(primitive) {
+	const markup = buildPrimitiveMarkup(primitive);
+	insertAtCursor(markup);
+	setStatus(`Inserted <${primitive.name}>.`);
+	focusEditorOnInsertedMarkup(markup);
 }
 
 function openShapeDialog(primitive) {
@@ -1232,6 +1285,7 @@ function loadShortcuts() {
 						: savedShortcuts.modifiers || defaultShortcuts.jumpToLine.modifiers,
 					key: String(savedShortcuts.key || defaultShortcuts.jumpToLine.key).toUpperCase()
 				},
+				quickAdd: { ...defaultShortcuts.quickAdd },
 				indent: { ...defaultShortcuts.indent },
 				outdent: { ...defaultShortcuts.outdent }
 			};
@@ -1241,6 +1295,10 @@ function loadShortcuts() {
 			jumpToLine: {
 				...defaultShortcuts.jumpToLine,
 				...(savedShortcuts.jumpToLine || {})
+			},
+			quickAdd: {
+				...defaultShortcuts.quickAdd,
+				...(savedShortcuts.quickAdd || {})
 			},
 			indent: {
 				...defaultShortcuts.indent,
@@ -1267,6 +1325,7 @@ function describeShortcut(shortcut) {
 function cloneShortcuts(shortcuts) {
 	return {
 		jumpToLine: { ...shortcuts.jumpToLine },
+		quickAdd: { ...shortcuts.quickAdd },
 		indent: { ...shortcuts.indent },
 		outdent: { ...shortcuts.outdent }
 	};

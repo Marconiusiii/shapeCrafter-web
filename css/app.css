@@ -419,6 +419,18 @@ dialog::backdrop {
 	gap: 0.75rem;
 }
 
+.quick-add-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	gap: 0.5rem;
+}
+
+.quick-add-list button {
+	width: 100%;
+}
+
 .modal-field {
 	display: grid;
 	gap: 0.35rem;
