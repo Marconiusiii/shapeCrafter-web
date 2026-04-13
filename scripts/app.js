@@ -95,7 +95,8 @@ const elements = {
   editorAnnouncer: document.getElementById("editorAnnouncer"),
   errorPanel: document.getElementById("errorPanel"),
   errorList: document.getElementById("errorList"),
-  fileList: document.getElementById("fileList"),
+  fileTable: document.getElementById("fileTable"),
+  fileTableBody: document.getElementById("fileTableBody"),
   fileLibrarySummary: document.getElementById("fileLibrarySummary"),
   attributePromptToggle: document.getElementById("attributePromptToggle"),
   primitiveList: document.getElementById("primitiveList"),
@@ -635,28 +636,32 @@ function formatDate(isoString) {
 
 function renderFileList() {
   state.files = loadFiles();
-  elements.fileList.replaceChildren();
+  elements.fileTableBody.replaceChildren();
 
   if (!state.files.length) {
     elements.fileLibrarySummary.textContent = "No saved files yet.";
+    elements.fileTable.hidden = true;
     return;
   }
 
   elements.fileLibrarySummary.textContent = `${state.files.length} saved file${state.files.length === 1 ? "" : "s"} in this browser.`;
+  elements.fileTable.hidden = false;
   const fragment = document.createDocumentFragment();
 
   state.files
     .slice()
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .forEach((file) => {
-      const item = document.createElement("li");
-      item.className = "file-item";
+      const row = document.createElement("tr");
 
       const openButton = document.createElement("button");
       openButton.type = "button";
       openButton.textContent = `${file.name}, ${formatDate(file.updatedAt)}`;
       openButton.setAttribute("aria-description", "Opens file");
       openButton.addEventListener("click", () => openFile(file.id));
+
+      const fileCell = document.createElement("td");
+      fileCell.appendChild(openButton);
 
       const actions = document.createElement("div");
       actions.className = "file-actions";
@@ -673,11 +678,13 @@ function renderFileList() {
       deleteButton.addEventListener("click", () => openDeleteDialog(file.id, deleteButton));
 
       actions.append(renameButton, deleteButton);
-      item.append(openButton, actions);
-      fragment.appendChild(item);
+      const actionsCell = document.createElement("td");
+      actionsCell.appendChild(actions);
+      row.append(fileCell, actionsCell);
+      fragment.appendChild(row);
     });
 
-  elements.fileList.appendChild(fragment);
+  elements.fileTableBody.appendChild(fragment);
 }
 
 function openFile(fileId) {

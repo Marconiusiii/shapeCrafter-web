@@ -353,15 +353,6 @@ button:focus,
   min-height: 100%;
 }
 
-.file-item {
-  display: grid;
-  gap: 0.75rem;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 0.75rem;
-  background: #fff;
-}
-
 .file-actions {
   display: flex;
   gap: 0.5rem;
@@ -370,6 +361,29 @@ button:focus,
 
 .file-actions button {
   width: auto;
+}
+
+#fileTable {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+#fileTable caption {
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+
+#fileTable th,
+#fileTable td {
+  padding: 0.75rem;
+  border: 1px solid #333;
+  vertical-align: top;
+  text-align: left;
+}
+
+#fileTable td > button {
+  width: 100%;
 }
 
 dialog {
