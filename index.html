@@ -40,7 +40,7 @@
 <nav class="site-header__nav">
 <a href="#mainContent" id="shapeCrafterHomeLink">shapeCrafter Home</a>
 <a href="https://blindsvg.com/">Return to BlindSVG</a>
-<a href="mailto:hello@blindsvg.com">Contact Me</a>
+<a href="mailto:hello@blindsvg.com?subject=shapeCrafter%20Feedback">shapeCrafter Feedback</a>
 </nav>
 </header>
 
@@ -48,7 +48,7 @@
 <section class="intro" id="homeView">
 <h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
 <p>shapeCrafter gives you a place to create hand-coded SVG graphics, render them instantly in the browser, and move directly to print or export.</p>
-<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss only the artwork.</p>
+<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss your creation.</p>
 <div class="action-row">
 <button type="button" id="newFileButton" aria-haspopup="dialog">New File</button>
 <button type="button" id="openShortcutsButton" aria-haspopup="dialog">Keyboard Shortcuts</button>
@@ -58,7 +58,7 @@
 <summary>Help and Getting Started</summary>
 <div class="details-body">
 <p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu.</p>
-<p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the caret to a specific line in the code.</p>
+<p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the cursor to a specific line in the code.</p>
 <p>Saved files stay in this browser until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
 <p>For embossing or tactile print workflows, choose Print from the render view so the browser prints only the rendered SVG.</p>
 </div>
@@ -86,22 +86,23 @@
 </div>
 
 <div class="workspace-grid">
-<aside class="primitive-panel">
+<section class="primitive-panel" aria-labelledby="svgElementMenuHeading">
+<h2 id="svgElementMenuHeading">SVG Element Menu</h2>
 <details>
 <summary>Add SVG Elements</summary>
-<p>Choose a primitive to insert code at the current caret position in the editor.</p>
+<p>Choose a primitive to insert code at the current cursor position in the editor.</p>
 <div class="toggle-row">
 <input type="checkbox" id="attributePromptToggle">
 <label for="attributePromptToggle">Prompt for attributes before inserting a shape</label>
 </div>
 <ul id="primitiveList" class="primitive-list"></ul>
 </details>
-</aside>
+</section>
 
-<section class="editor-panel" aria-label="SVG Editor">
-<h2>SVG Editor</h2>
-<section id="errorPanel" hidden>
-<h3>Errors in SVG Code</h3>
+<section class="editor-panel" aria-labelledby="svgEditorHeading">
+<h2 id="svgEditorHeading">SVG Editor</h2>
+<section id="errorPanel" aria-labelledby="svgErrorHeading" hidden>
+<h3 id="svgErrorHeading">Errors in SVG Code</h3>
 <ul id="errorList"></ul>
 </section>
 <label for="svgEditor">SVG Code</label>
@@ -117,8 +118,8 @@
 </section>
 </div>
 
-<section class="reference-panel">
-<h2>SVG Code Reference</h2>
+<section class="reference-panel" aria-labelledby="svgCodeReferenceHeading">
+<h2 id="svgCodeReferenceHeading">SVG Code Reference</h2>
 <div class="reference-content">
 <p>Expand the sections below for quick reminders while you code.</p>
 
@@ -327,7 +328,7 @@
 </div>
 </section>
 </div>
-<section id="renderCanvas" tabindex="0" aria-label="Rendered Image">
+<section id="renderCanvas" tabindex="0" aria-labelledby="renderCanvasHeading">
 <h2 id="renderCanvasHeading" class="non-printing">Rendered Image</h2>
 </section>
 </div>

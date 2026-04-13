@@ -6,7 +6,7 @@ const PRIMITIVES = [
   {
     name: "rect",
     required: ["x", "y", "width", "height"],
-    optional: ["stroke", "stroke-width", "fill", "id", "class"]
+    optional: ["rx", "ry", "stroke", "stroke-width", "fill", "id", "class"]
   },
   {
     name: "circle",
@@ -454,6 +454,9 @@ function openShapeDialog(primitive) {
     input.id = id;
     input.name = attribute;
     input.required = primitive.required.includes(attribute);
+    if (primitive.name === "rect" && (attribute === "rx" || attribute === "ry")) {
+      input.setAttribute("aria-description", "For rounded corners");
+    }
     wrapper.append(label, input);
     elements.shapeFieldContainer.appendChild(wrapper);
   });
