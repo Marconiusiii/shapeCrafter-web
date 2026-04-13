@@ -573,7 +573,7 @@ function buildPrimitiveMarkup(primitive, values = null) {
 				return;
 			}
 			if (attribute === "fill") {
-				attributes.push(`fill="${escapeXml(value || "none")}"`);
+				attributes.push(`fill="${escapeXml(primitive.name === "text" ? value || "black" : value || "none")}"`);
 				return;
 			}
 
@@ -624,7 +624,7 @@ function buildPrimitiveMarkup(primitive, values = null) {
 	}
 
 	if (primitive.name === "text") {
-		return `<text x="0" y="0" fill="oldLace">Text</text>\n`;
+		return `<text x="0" y="0" fill="black">Text</text>\n`;
 	}
 
 	return `<${primitive.name} />\n`;

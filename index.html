@@ -57,10 +57,10 @@
 <details id="helpDetails">
 <summary>Help and Getting Started</summary>
 <div class="details-body">
-<p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu.</p>
+<p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu. You can also use the Quick Add keyboard shortcut to bring up a menu of shapes to add into your code when focused in the editor.</p>
 <p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the cursor to a specific line in the code.</p>
 <p>Saved files stay in this browser until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
-<p>For embossing or tactile print workflows, choose Print from the render view so the browser prints only the rendered SVG.</p>
+<p>For embossing or tactile print workflows, choose Print/Emboss Image from the render view so the browser prints only the rendered SVG.</p>
 </div>
 </details>
 
@@ -345,7 +345,7 @@
 </main>
 
 <footer class="site-footer">
-<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.0.2</p>
+<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.1.0</p>
 </footer>
 
 <dialog id="newFileDialog">
@@ -468,7 +468,7 @@
 <input id="quickAddKeyInput" name="quickAddKey" type="text" maxlength="1" value="A" required>
 
 <div class="dialog-actions">
-<button type="button" id="resetShortcutButton">Reset Default</button>
+<button type="button" id="resetShortcutButton">Reset Defaults</button>
 <button type="button" data-close-dialog="shortcutsDialog">Cancel</button>
 <button type="submit" value="default">Save Shortcuts</button>
 </div>
