@@ -247,7 +247,9 @@ elements.shapeForm.addEventListener("submit", (event) => {
   insertAtCursor(markup);
   closeDialog(elements.shapeDialog, { restoreFocus: false });
   setStatus(`Inserted <${primitive.name}>.`);
-  focusEditorOnInsertedMarkup(markup);
+  requestAnimationFrame(() => {
+    focusEditorOnInsertedMarkup(markup);
+  });
 });
 
 elements.jumpForm.addEventListener("submit", (event) => {
@@ -581,14 +583,14 @@ function insertAtCursor(markup) {
   const end = editor.selectionEnd;
   const current = editor.value;
   editor.value = current.slice(0, start) + markup + current.slice(end);
-  editor.selectionStart = start;
-  editor.selectionEnd = start + markup.length;
+  const caretPosition = start + markup.length;
+  editor.selectionStart = caretPosition;
+  editor.selectionEnd = caretPosition;
   updateCurrentFileContent(editor.value);
 }
 
 function focusEditorOnInsertedMarkup(markup) {
   const editor = elements.svgEditor;
-  editor.focus();
   const lineIndex = editor.value.substring(0, editor.selectionStart).split("\n").length;
   focusEditorLine(lineIndex);
   setStatus(`${markup.trim()} added at line ${lineIndex}.`);
