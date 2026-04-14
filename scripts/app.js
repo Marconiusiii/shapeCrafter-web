@@ -3,7 +3,12 @@ const SHORTCUTS_KEY = "shapeCrafter.shortcuts";
 const BASE_TITLE = "shapeCrafter - BlindSVG";
 const BRAILLE_TABLES = {
 	grade1: "unicode.dis,en-ueb-g1.ctb",
-	grade2: "unicode.dis,en-ueb-g2.ctb"
+	grade2: "unicode.dis,en-ueb-g2.ctb",
+	usGrade1: "unicode.dis,en-us-g1.ctb",
+	usGrade2: "unicode.dis,en-us-g2.ctb",
+	britishGrade1: "unicode.dis,en-gb-g1.utb",
+	britishGrade2: "unicode.dis,en-GB-g2.ctb",
+	usMath: "unicode.dis,en-us-mathtext.ctb"
 };
 
 const PRIMITIVES = [
@@ -1623,7 +1628,22 @@ function translateToBraille(sourceText, grade) {
 }
 
 function describeBrailleGrade(grade) {
-	return grade === "grade2" ? "Grade 2 UEB" : "Grade 1 UEB";
+	switch (grade) {
+		case "grade2":
+			return "Grade 2 UEB";
+		case "usGrade1":
+			return "U.S. Grade 1";
+		case "usGrade2":
+			return "U.S. Grade 2";
+		case "britishGrade1":
+			return "British Grade 1";
+		case "britishGrade2":
+			return "British Grade 2";
+		case "usMath":
+			return "U.S. Math";
+		default:
+			return "Grade 1 UEB";
+	}
 }
 
 function clearBrailleConverter() {
