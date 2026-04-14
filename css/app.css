@@ -199,6 +199,25 @@ dialog {
 	gap: 0.75rem;
 }
 
+.braille-converter-section {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.braille-converter-section h2,
+.braille-converter-section p {
+	margin: 0;
+}
+
+.braille-converter-section input,
+.braille-converter-section select {
+	width: 100%;
+}
+
+.braille-converter__actions {
+	margin-top: 0;
+}
+
 .reference-content details h2 {
 	margin-top: 1rem;
 	margin-bottom: 0.5rem;
@@ -528,6 +547,7 @@ code {
 	#svgCodeReference details,
 	#helpDetails,
 	#fileLibraryDetails,
+	.braille-converter,
 	code,
 	textarea,
 	input,

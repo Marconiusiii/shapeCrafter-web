@@ -319,6 +319,34 @@
 </details>
 </div>
 </section>
+
+<section class="reference-panel braille-converter-section" aria-labelledby="brailleConverterHeading">
+<h2 id="brailleConverterHeading">Braille Converter</h2>
+<p>Enter text, choose a UEB output grade, convert it to braille Unicode, and copy the result into your SVG text code.</p>
+
+<label for="brailleSourceInput">Source Text</label>
+<input id="brailleSourceInput" type="text">
+<div class="action-row braille-converter__actions">
+<button type="button" id="clearBrailleInputButton">Clear Text</button>
+</div>
+
+<label for="brailleGradeSelect">Braille Output Grade</label>
+<select id="brailleGradeSelect">
+<option value="grade1">Grade 1 UEB</option>
+<option value="grade2">Grade 2 UEB</option>
+</select>
+<div class="action-row braille-converter__actions">
+<button type="button" id="convertBrailleButton">Convert to Braille Unicode</button>
+</div>
+
+<label for="brailleOutput">Braille Unicode Output</label>
+<input id="brailleOutput" type="text" readonly>
+<div class="action-row braille-converter__actions">
+<button type="button" id="copyBrailleOutputButton">Copy Braille Unicode</button>
+</div>
+
+<p id="brailleConverterStatus" class="status-message" role="status"></p>
+</section>
 </div>
 
 <div id="renderView" hidden inert>
@@ -555,6 +583,7 @@
 <div id="toast" class="toast" hidden aria-hidden="true"></div>
 <div id="editorAnnouncer" class="sr-only" role="status"></div>
 
+<script src="scripts/vendor/liblouis/easy-api.js"></script>
 <script src="scripts/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,10 @@
 const STORAGE_KEY = "shapeCrafter.files";
 const SHORTCUTS_KEY = "shapeCrafter.shortcuts";
 const BASE_TITLE = "shapeCrafter - BlindSVG";
+const BRAILLE_TABLES = {
+	grade1: "unicode.dis,en-ueb-g1.ctb",
+	grade2: "unicode.dis,en-ueb-g2.ctb"
+};
 
 const PRIMITIVES = [
 	{
@@ -77,7 +81,9 @@ const state = {
 	toastTimeoutId: 0,
 	exportSyncSource: "",
 	exportBaseWidthPx: 1000,
-	exportBaseHeightPx: 1000
+	exportBaseHeightPx: 1000,
+	brailleConverterReady: false,
+	brailleApi: null
 };
 
 const elements = {
@@ -99,6 +105,13 @@ const elements = {
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
 	errorPanel: document.getElementById("errorPanel"),
 	errorList: document.getElementById("errorList"),
+	brailleSourceInput: document.getElementById("brailleSourceInput"),
+	brailleGradeSelect: document.getElementById("brailleGradeSelect"),
+	brailleOutput: document.getElementById("brailleOutput"),
+	clearBrailleInputButton: document.getElementById("clearBrailleInputButton"),
+	convertBrailleButton: document.getElementById("convertBrailleButton"),
+	copyBrailleOutputButton: document.getElementById("copyBrailleOutputButton"),
+	brailleConverterStatus: document.getElementById("brailleConverterStatus"),
 	fileTable: document.getElementById("fileTable"),
 	fileTableBody: document.getElementById("fileTableBody"),
 	fileLibrarySummary: document.getElementById("fileLibrarySummary"),
@@ -203,6 +216,9 @@ document.getElementById("resetShortcutButton").addEventListener("click", () => {
 	state.shortcuts = cloneShortcuts(defaultShortcuts);
 	syncShortcutInputs();
 });
+elements.clearBrailleInputButton.addEventListener("click", clearBrailleConverter);
+elements.convertBrailleButton.addEventListener("click", updateBrailleConversion);
+elements.copyBrailleOutputButton.addEventListener("click", copyBrailleOutput);
 
 document.querySelectorAll("[data-close-dialog]").forEach((button) => {
 	button.addEventListener("click", () => {
@@ -343,8 +359,9 @@ document.addEventListener("keydown", (event) => {
 });
 
 initPrimitiveList();
-	initQuickAddList();
+initQuickAddList();
 updateShortcutModifierLabels();
+initBrailleConverter();
 renderFileList();
 setActiveView("home");
 
@@ -361,6 +378,41 @@ function prepareNewFileDialog() {
 	elements.newFileForm.reset();
 	elements.fileNameInput.value = "";
 	elements.fileNameInput.setCustomValidity("");
+}
+
+function initBrailleConverter() {
+	if (typeof LiblouisEasyApiAsync !== "function") {
+		setBrailleConverterReady(false);
+		setBrailleConverterStatus("Braille converter is unavailable right now.");
+		return;
+	}
+
+	setBrailleConverterReady(false);
+	setBrailleConverterStatus("Loading braille converter.");
+	state.brailleApi = new LiblouisEasyApiAsync({
+		capi: getPathFromOrigin("scripts/vendor/liblouis/build-no-tables-utf16.js"),
+		easyapi: getPathFromOrigin("scripts/vendor/liblouis/easy-api.js")
+	});
+	state.brailleApi.enableOnDemandTableLoading(getPathFromOrigin("scripts/vendor/liblouis/tables/"), () => {
+		state.brailleConverterReady = true;
+		setBrailleConverterReady(true);
+		setBrailleConverterStatus("Braille converter ready. Enter text and press Convert to Braille Unicode.");
+	});
+}
+
+function getPathFromOrigin(path) {
+	return new URL(path, window.location.href).pathname.replace(/^\/+/, "");
+}
+
+function setBrailleConverterReady(isReady) {
+	elements.brailleSourceInput.disabled = !isReady;
+	elements.brailleGradeSelect.disabled = !isReady;
+	elements.clearBrailleInputButton.disabled = !isReady;
+	elements.convertBrailleButton.disabled = !isReady;
+	elements.copyBrailleOutputButton.disabled = !isReady;
+	if (!isReady) {
+		elements.brailleOutput.value = "";
+	}
 }
 
 function openDialog(dialog, focusTarget) {
@@ -1521,6 +1573,85 @@ function showToast(message) {
 			elements.toast.textContent = "";
 		}, 200);
 	}, 6000);
+}
+
+function setBrailleConverterStatus(message) {
+	elements.brailleConverterStatus.textContent = message;
+}
+
+function updateBrailleConversion() {
+	if (!state.brailleConverterReady || !state.brailleApi) {
+		return;
+	}
+
+	const sourceText = elements.brailleSourceInput.value;
+	if (!sourceText.trim()) {
+		elements.brailleOutput.value = "";
+		setBrailleConverterStatus("Enter text before converting to braille Unicode.");
+		return;
+	}
+
+	setBrailleConverterStatus("Converting to braille Unicode.");
+	translateToBraille(sourceText, elements.brailleGradeSelect.value).then((braille) => {
+		elements.brailleOutput.value = braille;
+		setBrailleConverterStatus(`${describeBrailleGrade(elements.brailleGradeSelect.value)} braille ready to copy.`);
+	}).catch((error) => {
+		elements.brailleOutput.value = "";
+		setBrailleConverterStatus(error.message || "Braille conversion could not be completed.");
+	});
+}
+
+function translateToBraille(sourceText, grade) {
+	const table = BRAILLE_TABLES[grade];
+	if (!table) {
+		return Promise.reject(new Error("Choose a braille output grade."));
+	}
+
+	return new Promise((resolve, reject) => {
+		try {
+			state.brailleApi.translateString(table, sourceText, (result) => {
+				if (typeof result !== "string") {
+					reject(new Error("Braille conversion could not be completed."));
+					return;
+				}
+				resolve(result);
+			});
+		} catch (error) {
+			reject(new Error("Braille conversion could not be completed."));
+		}
+	});
+}
+
+function describeBrailleGrade(grade) {
+	return grade === "grade2" ? "Grade 2 UEB" : "Grade 1 UEB";
+}
+
+function clearBrailleConverter() {
+	elements.brailleSourceInput.value = "";
+	elements.brailleOutput.value = "";
+	setBrailleConverterStatus("");
+	elements.brailleSourceInput.focus();
+}
+
+async function copyBrailleOutput() {
+	if (!elements.brailleOutput.value) {
+		setBrailleConverterStatus("There is no braille Unicode to copy yet.");
+		return;
+	}
+
+	try {
+		if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+			await navigator.clipboard.writeText(elements.brailleOutput.value);
+		} else {
+			elements.brailleOutput.focus();
+			elements.brailleOutput.select();
+			document.execCommand("copy");
+		}
+		setBrailleConverterStatus("Braille Unicode copied.");
+		showToast("Braille Unicode copied.");
+	} catch (error) {
+		setBrailleConverterStatus("Braille Unicode could not be copied.");
+	}
 }
 
 function clearMessages() {
