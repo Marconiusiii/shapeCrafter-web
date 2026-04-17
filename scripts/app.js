@@ -469,7 +469,7 @@ function updateLiveViewControls() {
 function scheduleLiveRender() {
 	window.clearTimeout(state.liveRenderTimeoutId);
 	state.liveRenderTimeoutId = window.setTimeout(() => {
-		renderSvg({ suppressErrors: true, announceSuccess: false, source: "live" });
+		renderSvg({ suppressErrors: shouldSuppressErrors(), announceSuccess: false, source: "live" });
 	}, 1500);
 }
 
@@ -1106,6 +1106,9 @@ function renderSvg(options = {}) {
 	updateRenderedOutput(svg);
 	if (announceSuccess && renderSource !== "live") {
 		setStatus("SVG rendered.");
+		if (renderSource === "manual") {
+			announceEditorChange(`${elements.currentFileHeading.textContent} rendered in viewer`);
+		}
 	}
 	return true;
 }
