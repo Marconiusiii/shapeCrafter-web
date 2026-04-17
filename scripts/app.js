@@ -110,7 +110,6 @@ const elements = {
 	renderPreviewCanvasHeading: document.getElementById("renderPreviewCanvasHeading"),
 	renderPreviewPlaceholder: document.getElementById("renderPreviewPlaceholder"),
 	fullscreenRenderCanvas: document.getElementById("fullscreenRenderCanvas"),
-	fullscreenRenderCanvasHeading: document.getElementById("fullscreenRenderCanvasHeading"),
 	fullscreenRenderPlaceholder: document.getElementById("fullscreenRenderPlaceholder"),
 	renderMeta: document.getElementById("renderMeta"),
 	currentFileHeading: document.getElementById("currentFileHeading"),
@@ -194,8 +193,6 @@ const elements = {
 	closeFullscreenButton: document.getElementById("closeFullscreenButton"),
 	fileActionsDetails: document.getElementById("fileActionsDetails")
 };
-
-const fullscreenRenderHeadingGroup = elements.fullscreenRenderCanvasHeading.parentElement;
 
 document.getElementById("copyrightYear").textContent = new Date().getFullYear();
 
@@ -1184,7 +1181,7 @@ function updateRenderedOutput(svg) {
 		elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
 	}
 	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, previewSvg);
-	elements.fullscreenRenderCanvas.replaceChildren(fullscreenRenderHeadingGroup.cloneNode(true), fullscreenSvg);
+	elements.fullscreenRenderCanvas.replaceChildren(fullscreenSvg);
 }
 
 function resetRenderedOutput() {
@@ -1193,7 +1190,7 @@ function resetRenderedOutput() {
 		elements.renderMeta.textContent = "Rendered output will appear here.";
 	}
 	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
-	elements.fullscreenRenderCanvas.replaceChildren(fullscreenRenderHeadingGroup.cloneNode(true), elements.fullscreenRenderPlaceholder);
+	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderPlaceholder);
 }
 
 function openFullscreenGraphic() {
@@ -1684,8 +1681,12 @@ function getCurrentFile() {
 
 function focusActiveHeading(heading) {
 	requestAnimationFrame(() => {
-		heading.setAttribute("tabindex", "-1");
-		heading.focus();
+		requestAnimationFrame(() => {
+			window.setTimeout(() => {
+				heading.setAttribute("tabindex", "-1");
+				heading.focus();
+			}, 30);
+		});
 	});
 }
 

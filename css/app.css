@@ -440,11 +440,9 @@ button:focus,
 #fullscreenRenderCanvas {
 	min-height: 0;
 	height: calc(100vh - 5.5rem);
+	display: grid;
+	place-items: center;
 	padding: 1rem;
-}
-
-#fullscreenRenderCanvas .non-printing {
-	margin-bottom: 0.75rem;
 }
 
 body.is-fullscreen-graphic {
