@@ -195,6 +195,8 @@ const elements = {
 	fileActionsDetails: document.getElementById("fileActionsDetails")
 };
 
+const fullscreenRenderHeadingGroup = elements.fullscreenRenderCanvasHeading.parentElement;
+
 document.getElementById("copyrightYear").textContent = new Date().getFullYear();
 
 document.getElementById("newFileButton").addEventListener("click", (event) => {
@@ -858,9 +860,11 @@ function updateWorkspaceMeta(file) {
 	elements.fileMeta.textContent = `Updated ${formatDate(file.updatedAt)}`;
 	elements.renameCurrentFileButton.textContent = `Rename ${file.name}`;
 	elements.deleteCurrentFileButton.textContent = `Delete ${file.name}`;
-	elements.renderMeta.textContent = state.lastRenderedMarkup
-		? `${file.name} rendered and ready for print or export.`
-		: "Rendered output will appear here.";
+	if (elements.renderMeta) {
+		elements.renderMeta.textContent = state.lastRenderedMarkup
+			? `${file.name} rendered and ready for print or export.`
+			: "Rendered output will appear here.";
+	}
 	updateDocumentTitle();
 }
 
@@ -1155,7 +1159,7 @@ function downloadSvg() {
 function handleRenderFailure(errors, suppressErrors) {
 	if (suppressErrors) {
 		clearRenderErrors();
-		if (!state.lastRenderedMarkup) {
+		if (!state.lastRenderedMarkup && elements.renderMeta) {
 			elements.renderMeta.textContent = "Rendered output will appear here once the SVG is valid.";
 		}
 		return false;
@@ -1176,16 +1180,20 @@ function updateRenderedOutput(svg) {
 	const previewSvg = svg.cloneNode(true);
 	const fullscreenSvg = svg.cloneNode(true);
 	state.lastRenderedMarkup = previewSvg.outerHTML;
-	elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
+	if (elements.renderMeta) {
+		elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
+	}
 	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, previewSvg);
-	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderCanvasHeading.parentElement, fullscreenSvg);
+	elements.fullscreenRenderCanvas.replaceChildren(fullscreenRenderHeadingGroup.cloneNode(true), fullscreenSvg);
 }
 
 function resetRenderedOutput() {
 	state.lastRenderedMarkup = "";
-	elements.renderMeta.textContent = "Rendered output will appear here.";
+	if (elements.renderMeta) {
+		elements.renderMeta.textContent = "Rendered output will appear here.";
+	}
 	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
-	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderCanvasHeading.parentElement, elements.fullscreenRenderPlaceholder);
+	elements.fullscreenRenderCanvas.replaceChildren(fullscreenRenderHeadingGroup.cloneNode(true), elements.fullscreenRenderPlaceholder);
 }
 
 function openFullscreenGraphic() {
