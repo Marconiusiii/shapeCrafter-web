@@ -48,7 +48,15 @@
 <section class="intro" id="homeView">
 <h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
 <p>shapeCrafter gives you a place to create hand-coded SVG graphics, render them instantly in the browser, and move directly to print or export.</p>
-<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss your creation.</p>
+<p>Start a new SVG file, write or insert SVG elements, preview the rendered graphic while you work, and print or emboss your creation when it is ready.</p>
+<details id="updatesDetails">
+<summary>Apr 17 Updates</summary>
+<ul>
+<li>Live View and manual render controls now share the editor screen.</li>
+<li>The rendered SVG can be collapsed, expanded, or opened full screen.</li>
+<li>Mobile SVG element insertion now uses a compact picker above the editor.</li>
+</ul>
+</details>
 <div class="action-row">
 <button type="button" id="newFileButton" aria-haspopup="dialog">New File</button>
 <button type="button" id="openShortcutsButton" aria-haspopup="dialog">Keyboard Shortcuts</button>
@@ -58,9 +66,9 @@
 <summary>Help and Getting Started</summary>
 <div class="details-body">
 <p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu. You can also use the Quick Add keyboard shortcut to bring up a menu of shapes to add into your code when focused in the editor.</p>
-<p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the cursor to a specific line in the code.</p>
+<p>Use Live View for automatic rendering while you type, or keep Live View off and use Render SVG when you want to update the graphic manually. The Jump to Line button can move the cursor to a specific line in the code.</p>
 <p>Saved files stay in this browser until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
-<p>For embossing or tactile print workflows, choose Print/Emboss Image from the render view so the browser prints only the rendered SVG.</p>
+<p>For embossing or tactile print workflows, choose Print/Emboss Graphic from the file actions menu so the browser prints only the rendered SVG.</p>
 </div>
 </details>
 
@@ -89,8 +97,33 @@
 <div>
 <h1 id="currentFileHeading">Untitled</h1>
 <p id="fileMeta">No file open.</p>
-<button type="button" id="renameCurrentFileButton">Rename File</button>
+<details id="editorSettingsDetails">
+<summary>Editor Settings</summary>
+<div class="details-body">
+<div class="toggle-row">
+<input type="checkbox" id="liveViewToggle">
+<label for="liveViewToggle">Live View</label>
+</div>
+<div class="toggle-row">
+<input type="checkbox" id="errorSuppressionToggle">
+<label for="errorSuppressionToggle">Error Suppression</label>
+</div>
+</div>
+</details>
+</div>
+<div class="workspace-header__actions">
 <button type="button" id="backToHomeFromEditorButton">Back to Home</button>
+<details id="fileActionsDetails">
+<summary>File Actions</summary>
+<div class="file-actions-menu">
+<button type="button" id="printButton">Print/Emboss Graphic</button>
+<button type="button" id="saveButton">Save to Browser</button>
+<button type="button" id="downloadButton">Download SVG</button>
+<button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button>
+<button type="button" id="renameCurrentFileButton">Rename File</button>
+<button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button>
+</div>
+</details>
 </div>
 </div>
 
@@ -110,6 +143,21 @@
 
 <section class="editor-panel" aria-labelledby="svgEditorHeading">
 <h2 id="svgEditorHeading">SVG Editor</h2>
+<div class="editor-mobile-tools">
+<div class="editor-mobile-tools__picker">
+<label for="primitiveSelect">SVG Element</label>
+<div class="editor-mobile-tools__picker-controls">
+<select id="primitiveSelect">
+<option value="">Choose SVG Element</option>
+</select>
+<button type="button" id="addSelectedPrimitiveButton">Add SVG Element</button>
+</div>
+</div>
+<div class="toggle-row editor-mobile-tools__toggle">
+<input type="checkbox" id="mobileAttributePromptToggle">
+<label for="mobileAttributePromptToggle">Prompt for attributes</label>
+</div>
+</div>
 <section id="errorPanel" aria-labelledby="svgErrorHeading" hidden>
 <h3 id="svgErrorHeading">Errors in SVG Code</h3>
 <ul id="errorList"></ul>
@@ -117,15 +165,29 @@
 <label for="svgEditor">SVG Code</label>
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
 <div class="action-row">
-<button type="button" id="renderButton">Render SVG</button>
 <button type="button" id="jumpToLineButton" aria-haspopup="dialog">Jump to Line</button>
-<button type="button" id="saveButton">Save to Browser</button>
-<button type="button" id="downloadButton">Download SVG</button>
-<button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button>
 </div>
 <p id="statusMessage" class="status-message"></p>
 </section>
 </div>
+
+<section class="render-panel" aria-labelledby="renderPreviewHeading">
+<div class="render-panel__controls">
+<button type="button" id="renderButton">Render SVG</button>
+<button type="button" id="openFullscreenButton">View Graphic in Full Screen</button>
+</div>
+<details id="renderPreviewDetails" open>
+<summary>Rendered Graphic</summary>
+<div class="render-panel__body">
+<h2 id="renderPreviewHeading">Rendered Graphic</h2>
+<p id="renderMeta">Rendered output will appear here.</p>
+<section id="renderPreviewCanvas" tabindex="0" aria-labelledby="renderPreviewCanvasHeading">
+<h3 id="renderPreviewCanvasHeading" class="render-panel__subheading">Rendered Image</h3>
+<p id="renderPreviewPlaceholder">Render the SVG to preview it here.</p>
+</section>
+</div>
+</details>
+</section>
 
 <section class="reference-panel" aria-labelledby="svgCodeReferenceHeading">
 <h2 id="svgCodeReferenceHeading">SVG Code Reference</h2>
@@ -353,27 +415,17 @@
 <p id="brailleConverterStatus" class="status-message" role="status"></p>
 </section>
 </div>
+</section>
 
-<div id="renderView" hidden inert>
-<div class="workspace-header">
-<div>
-<h1 id="renderViewHeading">Rendered SVG</h1>
-<p id="renderMeta">Rendered output ready for print or export.</p>
+<section id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">
+<h1 id="fullscreenGraphicHeading" class="sr-only" tabindex="-1">Full Screen Graphic</h1>
+<button type="button" id="closeFullscreenButton" class="non-printing">Close Full Screen Graphic</button>
+<section id="fullscreenRenderCanvas" tabindex="0" aria-labelledby="fullscreenRenderCanvasHeading">
+<div class="non-printing">
+<h2 id="fullscreenRenderCanvasHeading">Rendered Image</h2>
 </div>
-<section aria-label="SVG Actions">
-<div class="action-row non-printing">
-<button type="button" id="returnToCodeButton">Return to Code</button>
-<button type="button" id="printButton">Print/Emboss Graphic</button>
-<button type="button" id="saveFromRenderButton">Save SVG</button>
-<button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button>
-<button type="button" id="backToHomeFromRenderButton">Back to Home</button>
-</div>
+<p id="fullscreenRenderPlaceholder">Render the SVG to preview it full screen.</p>
 </section>
-</div>
-<section id="renderCanvas" tabindex="0" aria-labelledby="renderCanvasHeading">
-<h2 id="renderCanvasHeading" class="non-printing">Rendered Image</h2>
-</section>
-</div>
 </section>
 </main>
 
@@ -512,7 +564,7 @@
 <form method="dialog" id="quickAddForm">
 <h2 id="quickAddDialogHeading" tabindex="-1">Quick Add SVG Element</h2>
 <p>Choose an SVG element to insert at the current cursor position.</p>
-<ul id="quickAddList" class="quick-add-list"></ul>
+<div id="quickAddList" class="quick-add-list"></div>
 <div class="dialog-actions">
 <button type="button" data-close-dialog="quickAddDialog">Cancel</button>
 </div>

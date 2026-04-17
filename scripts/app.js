@@ -84,11 +84,14 @@ const state = {
 	shouldRestoreFocus: true,
 	shortcuts: loadShortcuts(),
 	toastTimeoutId: 0,
+	liveRenderTimeoutId: 0,
 	exportSyncSource: "",
 	exportBaseWidthPx: 1000,
 	exportBaseHeightPx: 1000,
 	brailleConverterReady: false,
-	brailleApi: null
+	brailleApi: null,
+	lastRenderedMarkup: "",
+	printTarget: "preview"
 };
 
 const elements = {
@@ -96,15 +99,22 @@ const elements = {
 	homeHeading: document.getElementById("homeHeading"),
 	workspaceSection: document.getElementById("workspaceSection"),
 	editorView: document.getElementById("editorView"),
-	renderView: document.getElementById("renderView"),
-	renderCanvas: document.getElementById("renderCanvas"),
-	renderCanvasHeading: document.getElementById("renderCanvasHeading"),
-	renderViewHeading: document.getElementById("renderViewHeading"),
+	fullscreenView: document.getElementById("fullscreenView"),
+	fullscreenGraphicHeading: document.getElementById("fullscreenGraphicHeading"),
+	renderPreviewDetails: document.getElementById("renderPreviewDetails"),
+	renderPreviewCanvas: document.getElementById("renderPreviewCanvas"),
+	renderPreviewCanvasHeading: document.getElementById("renderPreviewCanvasHeading"),
+	renderPreviewPlaceholder: document.getElementById("renderPreviewPlaceholder"),
+	fullscreenRenderCanvas: document.getElementById("fullscreenRenderCanvas"),
+	fullscreenRenderCanvasHeading: document.getElementById("fullscreenRenderCanvasHeading"),
+	fullscreenRenderPlaceholder: document.getElementById("fullscreenRenderPlaceholder"),
 	renderMeta: document.getElementById("renderMeta"),
 	currentFileHeading: document.getElementById("currentFileHeading"),
 	fileMeta: document.getElementById("fileMeta"),
 	renameCurrentFileButton: document.getElementById("renameCurrentFileButton"),
 	deleteCurrentFileButton: document.getElementById("deleteCurrentFileButton"),
+	liveViewToggle: document.getElementById("liveViewToggle"),
+	errorSuppressionToggle: document.getElementById("errorSuppressionToggle"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -121,7 +131,10 @@ const elements = {
 	fileTableBody: document.getElementById("fileTableBody"),
 	fileLibrarySummary: document.getElementById("fileLibrarySummary"),
 	attributePromptToggle: document.getElementById("attributePromptToggle"),
+	mobileAttributePromptToggle: document.getElementById("mobileAttributePromptToggle"),
 	primitiveList: document.getElementById("primitiveList"),
+	primitiveSelect: document.getElementById("primitiveSelect"),
+	addSelectedPrimitiveButton: document.getElementById("addSelectedPrimitiveButton"),
 	newFileDialog: document.getElementById("newFileDialog"),
 	newFileForm: document.getElementById("newFileForm"),
 	newFileDialogHeading: document.getElementById("newFileDialogHeading"),
@@ -172,7 +185,10 @@ const elements = {
 	exportWidthInput: document.getElementById("exportWidthInput"),
 	exportHeightInput: document.getElementById("exportHeightInput"),
 	exportDpiInput: document.getElementById("exportDpiInput"),
-	toast: document.getElementById("toast")
+	toast: document.getElementById("toast"),
+	openFullscreenButton: document.getElementById("openFullscreenButton"),
+	closeFullscreenButton: document.getElementById("closeFullscreenButton"),
+	fileActionsDetails: document.getElementById("fileActionsDetails")
 };
 
 document.getElementById("copyrightYear").textContent = new Date().getFullYear();
@@ -189,13 +205,14 @@ document.getElementById("openShortcutsButton").addEventListener("click", (event)
 });
 
 document.getElementById("saveButton").addEventListener("click", saveCurrentFile);
-document.getElementById("saveFromRenderButton").addEventListener("click", saveCurrentFile);
 document.getElementById("downloadButton").addEventListener("click", downloadSvg);
 document.getElementById("backToHomeFromEditorButton").addEventListener("click", returnHome);
-document.getElementById("backToHomeFromRenderButton").addEventListener("click", returnHome);
-document.getElementById("renderButton").addEventListener("click", renderSvg);
-document.getElementById("returnToCodeButton").addEventListener("click", returnToEditor);
-document.getElementById("printButton").addEventListener("click", () => window.print());
+document.getElementById("renderButton").addEventListener("click", () => {
+	renderSvg({ suppressErrors: shouldSuppressErrors() });
+});
+document.getElementById("printButton").addEventListener("click", printRenderedSvg);
+elements.openFullscreenButton.addEventListener("click", openFullscreenGraphic);
+elements.closeFullscreenButton.addEventListener("click", closeFullscreenGraphic);
 elements.renameCurrentFileButton.addEventListener("click", () => {
 	if (state.currentFileId) {
 		renameFile(state.currentFileId);
@@ -245,6 +262,11 @@ elements.fileNameInput.addEventListener("invalid", () => {
 elements.exportUnitsInput.addEventListener("change", syncExportUnits);
 elements.exportWidthInput.addEventListener("input", () => syncExportDimensionPair("width"));
 elements.exportHeightInput.addEventListener("input", () => syncExportDimensionPair("height"));
+elements.liveViewToggle.addEventListener("change", handleLiveViewChange);
+elements.errorSuppressionToggle.addEventListener("change", handleErrorSuppressionChange);
+elements.attributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromDesktop);
+elements.mobileAttributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromMobile);
+elements.addSelectedPrimitiveButton.addEventListener("click", addSelectedPrimitiveFromPicker);
 
 elements.newFileForm.addEventListener("submit", (event) => {
 	event.preventDefault();
@@ -256,6 +278,7 @@ elements.newFileForm.addEventListener("submit", (event) => {
 	state.files = upsertFile(file);
 	state.currentFileId = file.id;
 	elements.svgEditor.value = file.content;
+	resetRenderedOutput();
 	setActiveView("editor");
 	updateWorkspaceMeta(file);
 	persistFiles();
@@ -263,7 +286,10 @@ elements.newFileForm.addEventListener("submit", (event) => {
 	clearMessages();
 	setStatus(`Created ${file.name}.`);
 	closeDialog(elements.newFileDialog, { restoreFocus: false });
-	focusEditorLine(3);
+	focusActiveHeading(elements.currentFileHeading);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
 });
 
 elements.shapeForm.addEventListener("submit", (event) => {
@@ -333,6 +359,9 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
 elements.svgEditor.addEventListener("input", () => {
 	clearStatus();
 	updateCurrentFileContent(elements.svgEditor.value);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
 });
 
 elements.svgEditor.addEventListener("keydown", (event) => {
@@ -363,12 +392,20 @@ document.addEventListener("keydown", (event) => {
 	}
 });
 
+window.addEventListener("afterprint", () => {
+	document.body.classList.remove("is-printing-svg");
+	document.body.removeAttribute("data-print-target");
+});
+
 initPrimitiveList();
+initPrimitiveSelect();
 initQuickAddList();
 updateShortcutModifierLabels();
 initBrailleConverter();
 renderFileList();
 setActiveView("home");
+syncAttributePromptToggles(elements.attributePromptToggle.checked);
+updateRenderButtonVisibility();
 
 function openShortcutsDialog() {
 	syncShortcutInputs();
@@ -383,6 +420,38 @@ function prepareNewFileDialog() {
 	elements.newFileForm.reset();
 	elements.fileNameInput.value = "";
 	elements.fileNameInput.setCustomValidity("");
+}
+
+function handleLiveViewChange() {
+	updateRenderButtonVisibility();
+	if (elements.liveViewToggle.checked) {
+		clearRenderErrors();
+		scheduleLiveRender();
+		return;
+	}
+
+	window.clearTimeout(state.liveRenderTimeoutId);
+}
+
+function handleErrorSuppressionChange() {
+	if (shouldSuppressErrors()) {
+		clearRenderErrors();
+	}
+}
+
+function shouldSuppressErrors() {
+	return elements.liveViewToggle.checked || elements.errorSuppressionToggle.checked;
+}
+
+function updateRenderButtonVisibility() {
+	document.getElementById("renderButton").hidden = elements.liveViewToggle.checked;
+}
+
+function scheduleLiveRender() {
+	window.clearTimeout(state.liveRenderTimeoutId);
+	state.liveRenderTimeoutId = window.setTimeout(() => {
+		renderSvg({ suppressErrors: true, announceSuccess: false, source: "live" });
+	}, 1500);
 }
 
 function initBrailleConverter() {
@@ -509,6 +578,48 @@ function initPrimitiveList() {
 	});
 
 	elements.primitiveList.appendChild(fragment);
+}
+
+function initPrimitiveSelect() {
+	const fragment = document.createDocumentFragment();
+
+	PRIMITIVES.forEach((primitive) => {
+		const option = document.createElement("option");
+		option.value = primitive.name;
+		option.textContent = `<${primitive.name}>`;
+		fragment.appendChild(option);
+	});
+
+	elements.primitiveSelect.appendChild(fragment);
+}
+
+function addSelectedPrimitiveFromPicker() {
+	const primitive = PRIMITIVES.find((item) => item.name === elements.primitiveSelect.value);
+	if (!primitive) {
+		setStatus("Choose an SVG element before adding it.");
+		return;
+	}
+
+	state.lastFocusedTrigger = elements.addSelectedPrimitiveButton;
+	if (elements.mobileAttributePromptToggle.checked) {
+		openShapeDialog(primitive);
+		return;
+	}
+
+	insertPrimitiveIntoEditor(primitive);
+}
+
+function syncAttributePromptToggles(isChecked) {
+	elements.attributePromptToggle.checked = isChecked;
+	elements.mobileAttributePromptToggle.checked = isChecked;
+}
+
+function syncAttributePromptTogglesFromDesktop() {
+	syncAttributePromptToggles(elements.attributePromptToggle.checked);
+}
+
+function syncAttributePromptTogglesFromMobile() {
+	syncAttributePromptToggles(elements.mobileAttributePromptToggle.checked);
 }
 
 function initQuickAddList() {
@@ -724,10 +835,12 @@ function focusEditorLine(lineNumber) {
 
 function updateWorkspaceMeta(file) {
 	elements.currentFileHeading.textContent = file.name;
-	elements.renderViewHeading.textContent = `${file.name} Print View`;
 	elements.fileMeta.textContent = `Updated ${formatDate(file.updatedAt)}`;
 	elements.renameCurrentFileButton.textContent = `Rename ${file.name}`;
 	elements.deleteCurrentFileButton.textContent = `Delete ${file.name}`;
+	elements.renderMeta.textContent = state.lastRenderedMarkup
+		? `${file.name} rendered and ready for print or export.`
+		: "Rendered output will appear here.";
 	updateDocumentTitle();
 }
 
@@ -808,10 +921,14 @@ function openFile(fileId) {
 	state.currentFileId = file.id;
 	setActiveView("editor");
 	elements.svgEditor.value = file.content;
+	resetRenderedOutput();
 	updateWorkspaceMeta(file);
 	clearMessages();
 	setStatus(`Opened ${file.name}.`);
 	focusActiveHeading(elements.currentFileHeading);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
 }
 
 function renameFile(fileId) {
@@ -855,9 +972,8 @@ function deleteFile(fileId) {
 		elements.fileMeta.textContent = "No file open.";
 		elements.renameCurrentFileButton.textContent = "Rename File";
 		elements.deleteCurrentFileButton.textContent = "Delete File";
-		elements.renderViewHeading.textContent = "Rendered SVG";
 		elements.svgEditor.value = "";
-		elements.renderCanvas.replaceChildren(elements.renderCanvasHeading);
+		resetRenderedOutput();
 		setActiveView("home");
 		focusActiveHeading(elements.homeHeading);
 	}
@@ -927,59 +1043,54 @@ function updateCurrentFileContent(content) {
 	updateWorkspaceMeta(file);
 }
 
-function renderSvg() {
-	const source = elements.svgEditor.value.trim();
-	if (!source) {
+function renderSvg(options = {}) {
+	const {
+		suppressErrors = false,
+		announceSuccess = true,
+		source: renderSource = "manual"
+	} = options;
+	const svgSource = elements.svgEditor.value.trim();
+	if (!svgSource) {
 		setStatus("Enter SVG code before rendering.");
 		return;
 	}
 
 	const parser = new DOMParser();
-	const doc = parser.parseFromString(source, "image/svg+xml");
+	const doc = parser.parseFromString(svgSource, "image/svg+xml");
 	const parserErrors = extractParserErrorsFromDocument(doc);
 	if (parserErrors.length) {
-		presentRenderErrors(parserErrors);
-		return;
+		return handleRenderFailure(parserErrors, suppressErrors);
 	}
 
 	const parserErrorNode = findParserErrorNode(doc);
 	if (parserErrorNode) {
-		clearRenderErrors();
-		setActiveView("editor");
-		setStatus("The SVG could not be rendered.");
-		elements.svgEditor.focus();
-		return;
+		return handleRenderFailure([], suppressErrors);
 	}
 
 	const svg = doc.documentElement;
 	if (!svg || svg.nodeName.toLowerCase() !== "svg") {
-		presentRenderErrors([
+		return handleRenderFailure([
 			{
 				line: 1,
 				column: 1,
 				rawMessage: "The document must begin with a valid <svg> root element.",
 				plainLanguage: "Make sure the file starts with an opening <svg> tag and that it is written correctly."
 			}
-		]);
-		return;
+		], suppressErrors);
 	}
 
 	sanitizeSvg(svg);
 	prepareRenderedSvg(svg);
 	clearRenderErrors();
-	elements.renderCanvas.replaceChildren(elements.renderCanvasHeading, svg.cloneNode(true));
-	setActiveView("render");
-	elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
-	focusActiveHeading(elements.renderViewHeading);
-	setStatus("SVG rendered.");
-}
-
-function returnToEditor() {
-	setActiveView("editor");
-	focusActiveHeading(elements.currentFileHeading);
+	updateRenderedOutput(svg);
+	if (announceSuccess && renderSource !== "live") {
+		setStatus("SVG rendered.");
+	}
+	return true;
 }
 
 function returnHome() {
+	closeFullscreenGraphic({ restoreFocus: false });
 	setActiveView("home");
 	clearStatus();
 	focusActiveHeading(elements.homeHeading);
@@ -987,9 +1098,9 @@ function returnHome() {
 
 function setActiveView(viewName) {
 	syncRegion(elements.homeView, viewName === "home");
-	syncRegion(elements.workspaceSection, viewName === "editor" || viewName === "render");
+	syncRegion(elements.workspaceSection, viewName === "editor");
 	syncRegion(elements.editorView, viewName === "editor");
-	syncRegion(elements.renderView, viewName === "render");
+	syncRegion(elements.fullscreenView, viewName === "fullscreen");
 	updateDocumentTitle({ view: viewName });
 }
 
@@ -1013,6 +1124,79 @@ function downloadSvg() {
 	const filename = elements.currentFileHeading.textContent || "drawing.svg";
 	triggerDownload(blob, filename.endsWith(".svg") ? filename : `${filename}.svg`);
 	setStatus("SVG download started.");
+}
+
+function handleRenderFailure(errors, suppressErrors) {
+	if (suppressErrors) {
+		clearRenderErrors();
+		if (!state.lastRenderedMarkup) {
+			elements.renderMeta.textContent = "Rendered output will appear here once the SVG is valid.";
+		}
+		return false;
+	}
+
+	if (errors.length) {
+		presentRenderErrors(errors);
+		return false;
+	}
+
+	clearRenderErrors();
+	setStatus("The SVG could not be rendered.");
+	elements.svgEditor.focus();
+	return false;
+}
+
+function updateRenderedOutput(svg) {
+	const previewSvg = svg.cloneNode(true);
+	const fullscreenSvg = svg.cloneNode(true);
+	state.lastRenderedMarkup = previewSvg.outerHTML;
+	elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
+	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, previewSvg);
+	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderCanvasHeading.parentElement, fullscreenSvg);
+}
+
+function resetRenderedOutput() {
+	state.lastRenderedMarkup = "";
+	elements.renderMeta.textContent = "Rendered output will appear here.";
+	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
+	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderCanvasHeading.parentElement, elements.fullscreenRenderPlaceholder);
+}
+
+function openFullscreenGraphic() {
+	const rendered = renderSvg({ suppressErrors: shouldSuppressErrors(), announceSuccess: false, source: "fullscreen" });
+	if (!rendered && !state.lastRenderedMarkup) {
+		return;
+	}
+
+	state.lastFocusedTrigger = elements.openFullscreenButton;
+	setActiveView("fullscreen");
+	focusActiveHeading(elements.fullscreenGraphicHeading);
+}
+
+function closeFullscreenGraphic(options = {}) {
+	if (elements.fullscreenView.hidden) {
+		return;
+	}
+
+	setActiveView("editor");
+	if (options.restoreFocus === false) {
+		return;
+	}
+	requestAnimationFrame(() => {
+		elements.openFullscreenButton.focus();
+	});
+}
+
+function printRenderedSvg() {
+	const rendered = renderSvg({ suppressErrors: false, announceSuccess: false, source: "print" });
+	if (!rendered) {
+		return;
+	}
+
+	state.printTarget = elements.fullscreenView.hidden ? "preview" : "fullscreen";
+	document.body.setAttribute("data-print-target", state.printTarget);
+	document.body.classList.add("is-printing-svg");
+	window.print();
 }
 
 async function exportRaster() {
@@ -1416,8 +1600,8 @@ function updateDocumentTitle(stateOverride = {}) {
 		return;
 	}
 
-	if (activeView === "render" && currentFile) {
-		document.title = `${filename} Print View - ${BASE_TITLE}`;
+	if (activeView === "fullscreen" && currentFile) {
+		document.title = `${filename} Full Screen View - ${BASE_TITLE}`;
 		return;
 	}
 
@@ -1430,8 +1614,8 @@ function updateDocumentTitle(stateOverride = {}) {
 }
 
 function getActiveView() {
-	if (!elements.renderView.hidden) {
-		return "render";
+	if (!elements.fullscreenView.hidden) {
+		return "fullscreen";
 	}
 
 	if (!elements.editorView.hidden) {
@@ -1448,7 +1632,9 @@ function getOpenDialogId() {
 		elements.jumpDialog,
 		elements.shortcutsDialog,
 		elements.exportDialog,
-		elements.errorDialog
+		elements.errorDialog,
+		elements.deleteDialog,
+		elements.quickAddDialog
 	];
 	const openDialog = dialogs.find((dialog) => dialog.open);
 	return openDialog ? openDialog.id : "";
