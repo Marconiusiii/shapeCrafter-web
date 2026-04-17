@@ -95,6 +95,10 @@ const state = {
 };
 
 const elements = {
+	skipLink: document.getElementById("skip-link"),
+	siteHeader: document.querySelector(".site-header"),
+	mainContent: document.getElementById("mainContent"),
+	siteFooter: document.querySelector(".site-footer"),
 	homeView: document.getElementById("homeView"),
 	homeHeading: document.getElementById("homeHeading"),
 	workspaceSection: document.getElementById("workspaceSection"),
@@ -378,6 +382,12 @@ elements.svgEditor.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+	if (event.key === "Escape" && !elements.fullscreenView.hidden) {
+		event.preventDefault();
+		closeFullscreenGraphic();
+		return;
+	}
+
 	if (matchesShortcut(event, state.shortcuts.jumpToLine)) {
 		event.preventDefault();
 		state.lastFocusedTrigger = document.activeElement;
@@ -406,6 +416,7 @@ renderFileList();
 setActiveView("home");
 syncAttributePromptToggles(elements.attributePromptToggle.checked);
 updateRenderButtonVisibility();
+updateLiveViewControls();
 
 function openShortcutsDialog() {
 	syncShortcutInputs();
@@ -423,6 +434,7 @@ function prepareNewFileDialog() {
 }
 
 function handleLiveViewChange() {
+	updateLiveViewControls();
 	updateRenderButtonVisibility();
 	if (elements.liveViewToggle.checked) {
 		clearRenderErrors();
@@ -440,11 +452,19 @@ function handleErrorSuppressionChange() {
 }
 
 function shouldSuppressErrors() {
-	return elements.liveViewToggle.checked || elements.errorSuppressionToggle.checked;
+	return elements.liveViewToggle.checked && elements.errorSuppressionToggle.checked;
 }
 
 function updateRenderButtonVisibility() {
 	document.getElementById("renderButton").hidden = elements.liveViewToggle.checked;
+}
+
+function updateLiveViewControls() {
+	const liveViewIsOn = elements.liveViewToggle.checked;
+	elements.errorSuppressionToggle.disabled = !liveViewIsOn;
+	if (!liveViewIsOn) {
+		elements.errorSuppressionToggle.checked = false;
+	}
 }
 
 function scheduleLiveRender() {
@@ -1097,10 +1117,16 @@ function returnHome() {
 }
 
 function setActiveView(viewName) {
-	syncRegion(elements.homeView, viewName === "home");
-	syncRegion(elements.workspaceSection, viewName === "editor");
-	syncRegion(elements.editorView, viewName === "editor");
-	syncRegion(elements.fullscreenView, viewName === "fullscreen");
+	const showFullscreen = viewName === "fullscreen";
+	document.body.classList.toggle("is-fullscreen-graphic", showFullscreen);
+	syncRegion(elements.skipLink, !showFullscreen);
+	syncRegion(elements.siteHeader, !showFullscreen);
+	syncRegion(elements.mainContent, !showFullscreen);
+	syncRegion(elements.siteFooter, !showFullscreen);
+	syncRegion(elements.homeView, !showFullscreen && viewName === "home");
+	syncRegion(elements.workspaceSection, !showFullscreen && viewName === "editor");
+	syncRegion(elements.editorView, !showFullscreen && viewName === "editor");
+	syncRegion(elements.fullscreenView, showFullscreen);
 	updateDocumentTitle({ view: viewName });
 }
 
@@ -1183,6 +1209,10 @@ function closeFullscreenGraphic(options = {}) {
 		return;
 	}
 	requestAnimationFrame(() => {
+		if (state.lastFocusedTrigger && typeof state.lastFocusedTrigger.focus === "function") {
+			state.lastFocusedTrigger.focus();
+			return;
+		}
 		elements.openFullscreenButton.focus();
 	});
 }

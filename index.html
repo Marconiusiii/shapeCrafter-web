@@ -106,10 +106,12 @@
 <input type="checkbox" id="liveViewToggle">
 <label for="liveViewToggle">Live View</label>
 </div>
+<p id="liveViewHelp">Live View updates the rendered graphic automatically a moment after you stop typing.</p>
 <div class="toggle-row">
 <input type="checkbox" id="errorSuppressionToggle">
 <label for="errorSuppressionToggle">Error Suppression</label>
 </div>
+<p id="errorSuppressionHelp">Error Suppression keeps parser errors from interrupting you while Live View is updating.</p>
 </div>
 </details>
 </div>
@@ -417,21 +419,22 @@
 </div>
 </section>
 
-<section id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">
-<h1 id="fullscreenGraphicHeading" class="sr-only" tabindex="-1">Full Screen Graphic</h1>
-<button type="button" id="closeFullscreenButton" class="non-printing">Close Full Screen Graphic</button>
+</main>
+
+<footer class="site-footer">
+<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.3.0</p>
+</footer>
+
+<main id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">
+<h1 id="fullscreenGraphicHeading" class="non-printing" tabindex="-1">Full Screen Graphic</h1>
+<button type="button" id="closeFullscreenButton" class="non-printing">Close Graphic</button>
 <section id="fullscreenRenderCanvas" tabindex="0" aria-labelledby="fullscreenRenderCanvasHeading">
 <div class="non-printing">
 <h2 id="fullscreenRenderCanvasHeading">Rendered Image</h2>
 </div>
 <p id="fullscreenRenderPlaceholder">Render the SVG to preview it full screen.</p>
 </section>
-</section>
 </main>
-
-<footer class="site-footer">
-<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.3.0</p>
-</footer>
 
 <dialog id="newFileDialog">
 <form method="dialog" id="newFileForm">
