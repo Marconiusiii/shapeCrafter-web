@@ -8,6 +8,10 @@ html {
 	box-sizing: inherit;
 }
 
+[hidden] {
+	display: none !important;
+}
+
 body {
 	margin: 0;
 	min-height: 100vh;
@@ -89,8 +93,7 @@ main {
 .details-body,
 .primitive-panel,
 .editor-panel,
-.preview-panel,
-#renderView {
+.preview-panel {
 	display: block;
 }
 
@@ -137,8 +140,7 @@ dialog {
 	background: #e7edf2;
 }
 
-#editorView,
-#renderView {
+#editorView {
 	display: block;
 }
 
