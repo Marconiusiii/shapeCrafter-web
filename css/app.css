@@ -184,8 +184,7 @@ dialog {
 
 #liveViewHelp,
 #renderDelayHelp,
-#renderSoundHelp,
-#renderDelayValue {
+#renderSoundHelp {
 	margin: -0.25rem 0 0;
 	color: #314550;
 }
@@ -801,7 +800,6 @@ code {
 	#liveViewHelp,
 	#renderDelayHelp,
 	#renderSoundHelp,
-	#renderDelayValue,
 	#renderPreviewPlaceholder,
 	#fullscreenRenderPlaceholder {
 		color: #d7e2e8;

@@ -123,7 +123,6 @@ const elements = {
 	deleteCurrentFileButton: document.getElementById("deleteCurrentFileButton"),
 	liveViewToggle: document.getElementById("liveViewToggle"),
 	renderDelayInput: document.getElementById("renderDelayInput"),
-	renderDelayValue: document.getElementById("renderDelayValue"),
 	renderSoundToggle: document.getElementById("renderSoundToggle"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
@@ -224,6 +223,7 @@ document.getElementById("renderButton").addEventListener("click", () => {
 document.getElementById("printButton").addEventListener("click", printRenderedSvg);
 elements.openFullscreenButton.addEventListener("click", openFullscreenGraphic);
 elements.closeFullscreenButton.addEventListener("click", closeFullscreenGraphic);
+elements.fileActionsButton.addEventListener("click", handleFileActionsButtonClick);
 elements.fileActionsButton.addEventListener("keydown", handleFileActionsButtonKeydown);
 elements.fileActionsMenu.addEventListener("keydown", handleFileActionsMenuKeydown);
 elements.fileActionsMenu.addEventListener("toggle", handleFileActionsMenuToggle);
@@ -496,7 +496,7 @@ function syncSettingsInputs() {
 }
 
 function updateRenderDelayValue() {
-	elements.renderDelayValue.textContent = `${Number(state.settings.renderDelay).toFixed(1)} seconds`;
+	elements.renderDelayInput.setAttribute("aria-valuetext", `${Number(state.settings.renderDelay).toFixed(1)} seconds`);
 }
 
 function initBrailleConverter() {
@@ -1273,11 +1273,30 @@ function openFileActionsMenu(focusMode = "first") {
 	});
 }
 
+function toggleFileActionsMenu() {
+	if (elements.fileActionsMenu.matches(":popover-open")) {
+		closeFileActionsMenu();
+		return;
+	}
+
+	openFileActionsMenu("first");
+}
+
 function getFileActionsMenuItems() {
 	return [...elements.fileActionsMenu.querySelectorAll('[role="menuitem"]')];
 }
 
+function handleFileActionsButtonClick() {
+	toggleFileActionsMenu();
+}
+
 function handleFileActionsButtonKeydown(event) {
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault();
+		toggleFileActionsMenu();
+		return;
+	}
+
 	if (event.key === "ArrowDown") {
 		event.preventDefault();
 		openFileActionsMenu("first");
@@ -1801,7 +1820,7 @@ function normalizeRenderDelay(value) {
 	if (!Number.isFinite(numericValue)) {
 		return 1.5;
 	}
-	return Math.min(3, Math.max(0.5, Number(numericValue.toFixed(1))));
+	return Math.min(5, Math.max(0.1, Number(numericValue.toFixed(1))));
 }
 
 function describeShortcut(shortcut) {

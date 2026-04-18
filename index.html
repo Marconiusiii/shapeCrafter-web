@@ -109,8 +109,7 @@
 <p id="liveViewHelp">Live View updates the rendered graphic automatically a moment after you stop typing.</p>
 <div class="slider-row">
 <label for="renderDelayInput">Render Delay</label>
-<input type="range" id="renderDelayInput" min="0.5" max="3" step="0.1" value="1.5">
-<p id="renderDelayValue">1.5 seconds</p>
+<input type="range" id="renderDelayInput" min="0.1" max="5.0" step="0.1" value="1.5" aria-valuetext="1.5 seconds">
 </div>
 <p id="renderDelayHelp">Adjust how long shapeCrafter waits before Live View updates the rendered graphic.</p>
 <div class="toggle-row">
@@ -171,7 +170,7 @@
 </div>
 
 <div class="file-actions-popdown">
-<button type="button" id="fileActionsButton" popovertarget="fileActionsMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="fileActionsMenu">File Actions</button>
+<button type="button" id="fileActionsButton" aria-haspopup="menu" aria-expanded="false" aria-controls="fileActionsMenu">File Actions</button>
 <div id="fileActionsMenu" class="file-actions-menu" popover role="menu" aria-labelledby="fileActionsButton">
 <button type="button" id="printButton" role="menuitem">Print/Emboss Graphic</button>
 <button type="button" id="saveButton" role="menuitem">Save to Browser</button>
