@@ -224,6 +224,9 @@ document.getElementById("renderButton").addEventListener("click", () => {
 document.getElementById("printButton").addEventListener("click", printRenderedSvg);
 elements.openFullscreenButton.addEventListener("click", openFullscreenGraphic);
 elements.closeFullscreenButton.addEventListener("click", closeFullscreenGraphic);
+elements.fileActionsButton.addEventListener("keydown", handleFileActionsButtonKeydown);
+elements.fileActionsMenu.addEventListener("keydown", handleFileActionsMenuKeydown);
+elements.fileActionsMenu.addEventListener("toggle", handleFileActionsMenuToggle);
 elements.renameCurrentFileButton.addEventListener("click", () => {
 	if (state.currentFileId) {
 		renameFile(state.currentFileId);
@@ -1254,6 +1257,81 @@ function closeFileActionsMenu() {
 	}
 }
 
+function openFileActionsMenu(focusMode = "first") {
+	if (!elements.fileActionsMenu.matches(":popover-open")) {
+		elements.fileActionsMenu.showPopover();
+	}
+
+	const items = getFileActionsMenuItems();
+	if (!items.length) {
+		return;
+	}
+
+	const target = focusMode === "last" ? items[items.length - 1] : items[0];
+	requestAnimationFrame(() => {
+		target.focus();
+	});
+}
+
+function getFileActionsMenuItems() {
+	return [...elements.fileActionsMenu.querySelectorAll('[role="menuitem"]')];
+}
+
+function handleFileActionsButtonKeydown(event) {
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		openFileActionsMenu("first");
+		return;
+	}
+
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		openFileActionsMenu("last");
+	}
+}
+
+function handleFileActionsMenuKeydown(event) {
+	const items = getFileActionsMenuItems();
+	const currentIndex = items.indexOf(document.activeElement);
+	if (!items.length) {
+		return;
+	}
+
+	if (event.key === "Escape") {
+		event.preventDefault();
+		closeFileActionsMenu();
+		elements.fileActionsButton.focus();
+		return;
+	}
+
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		items[(currentIndex + 1 + items.length) % items.length].focus();
+		return;
+	}
+
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		items[(currentIndex - 1 + items.length) % items.length].focus();
+		return;
+	}
+
+	if (event.key === "Home") {
+		event.preventDefault();
+		items[0].focus();
+		return;
+	}
+
+	if (event.key === "End") {
+		event.preventDefault();
+		items[items.length - 1].focus();
+	}
+}
+
+function handleFileActionsMenuToggle() {
+	elements.fileActionsButton.setAttribute("aria-expanded", elements.fileActionsMenu.matches(":popover-open") ? "true" : "false");
+}
+
 function playRenderSound() {
 	if (!state.settings.renderSound) {
 		return;
@@ -1277,14 +1355,14 @@ function playRenderSound() {
 	const masterGain = context.createGain();
 	const filter = context.createBiquadFilter();
 	const chordFrequencies = [261.63, 329.63, 392];
-	const duration = 1.6;
+	const duration = 0.9;
 
 	filter.type = "lowpass";
 	filter.frequency.setValueAtTime(1400, now);
 	filter.Q.setValueAtTime(0.6, now);
 	masterGain.gain.setValueAtTime(0.0001, now);
-	masterGain.gain.linearRampToValueAtTime(0.03, now + 0.35);
-	masterGain.gain.linearRampToValueAtTime(0.022, now + 0.95);
+	masterGain.gain.linearRampToValueAtTime(0.028, now + 0.18);
+	masterGain.gain.linearRampToValueAtTime(0.018, now + 0.45);
 	masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 	filter.connect(masterGain);
 	masterGain.connect(context.destination);
@@ -1894,9 +1972,12 @@ function outdentSelection() {
 
 function announceEditorChange(message) {
 	elements.editorAnnouncer.textContent = "";
-	requestAnimationFrame(() => {
-		elements.editorAnnouncer.textContent = message;
-	});
+	window.setTimeout(() => {
+		elements.editorAnnouncer.textContent = "";
+		window.setTimeout(() => {
+			elements.editorAnnouncer.textContent = message;
+		}, 40);
+	}, 10);
 }
 
 function matchesShortcut(event, shortcut) {
