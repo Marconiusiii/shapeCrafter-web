@@ -1283,7 +1283,7 @@ function toggleFileActionsMenu() {
 }
 
 function getFileActionsMenuItems() {
-	return [...elements.fileActionsMenu.querySelectorAll('[role="menuitem"]')];
+	return [...elements.fileActionsMenu.querySelectorAll("button")];
 }
 
 function handleFileActionsButtonClick() {

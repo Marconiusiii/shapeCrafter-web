@@ -170,14 +170,16 @@
 </div>
 
 <div class="file-actions-popdown">
-<button type="button" id="fileActionsButton" aria-haspopup="menu" aria-expanded="false" aria-controls="fileActionsMenu">File Actions</button>
-<div id="fileActionsMenu" class="file-actions-menu" popover role="menu" aria-labelledby="fileActionsButton">
-<button type="button" id="printButton" role="menuitem">Print/Emboss Graphic</button>
-<button type="button" id="saveButton" role="menuitem">Save to Browser</button>
-<button type="button" id="downloadButton" role="menuitem">Download SVG</button>
-<button type="button" id="exportRasterButton" role="menuitem" aria-haspopup="dialog">Export Raster</button>
-<button type="button" id="renameCurrentFileButton" role="menuitem">Rename File</button>
-<button type="button" id="deleteCurrentFileButton" role="menuitem" aria-haspopup="dialog">Delete File</button>
+<button type="button" id="fileActionsButton" aria-expanded="false" aria-controls="fileActionsMenu">File Actions</button>
+<div id="fileActionsMenu" class="file-actions-menu" popover="manual">
+<ul id="fileActionsList" role="list">
+<li><button type="button" id="printButton">Print/Emboss Graphic</button></li>
+<li><button type="button" id="saveButton">Save to Browser</button></li>
+<li><button type="button" id="downloadButton">Download SVG</button></li>
+<li><button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button></li>
+<li><button type="button" id="renameCurrentFileButton">Rename File</button></li>
+<li><button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button></li>
+</ul>
 </div>
 </div>
 
