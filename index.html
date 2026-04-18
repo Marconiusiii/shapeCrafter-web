@@ -107,27 +107,22 @@
 <label for="liveViewToggle">Live View</label>
 </div>
 <p id="liveViewHelp">Live View updates the rendered graphic automatically a moment after you stop typing.</p>
-<div class="toggle-row">
-<input type="checkbox" id="errorSuppressionToggle">
-<label for="errorSuppressionToggle">Error Suppression</label>
+<div class="slider-row">
+<label for="renderDelayInput">Render Delay</label>
+<input type="range" id="renderDelayInput" min="0.5" max="3" step="0.1" value="1.5">
+<p id="renderDelayValue">1.5 seconds</p>
 </div>
-<p id="errorSuppressionHelp">Error Suppression keeps parser errors from interrupting you while Live View is updating.</p>
+<p id="renderDelayHelp">Adjust how long shapeCrafter waits before Live View updates the rendered graphic.</p>
+<div class="toggle-row">
+<input type="checkbox" id="renderSoundToggle">
+<label for="renderSoundToggle">Render Sound</label>
+</div>
+<p id="renderSoundHelp">Play a subtle sound when the rendered graphic updates.</p>
 </div>
 </details>
 </div>
 <div class="workspace-header__actions">
 <button type="button" id="backToHomeFromEditorButton">Back to Home</button>
-<details id="fileActionsDetails">
-<summary>File Actions</summary>
-<div class="file-actions-menu">
-<button type="button" id="printButton">Print/Emboss Graphic</button>
-<button type="button" id="saveButton">Save to Browser</button>
-<button type="button" id="downloadButton">Download SVG</button>
-<button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button>
-<button type="button" id="renameCurrentFileButton">Rename File</button>
-<button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button>
-</div>
-</details>
 </div>
 </div>
 
@@ -175,6 +170,18 @@
 </section>
 </div>
 
+<div class="file-actions-popdown">
+<button type="button" id="fileActionsButton" popovertarget="fileActionsMenu" aria-haspopup="menu">File Actions</button>
+<div id="fileActionsMenu" class="file-actions-menu" popover>
+<button type="button" id="printButton">Print/Emboss Graphic</button>
+<button type="button" id="saveButton">Save to Browser</button>
+<button type="button" id="downloadButton">Download SVG</button>
+<button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button>
+<button type="button" id="renameCurrentFileButton">Rename File</button>
+<button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button>
+</div>
+</div>
+
 <section class="render-panel" aria-labelledby="renderPreviewHeading">
 <div class="render-panel__controls">
 <button type="button" id="renderButton">Render SVG</button>
@@ -183,6 +190,10 @@
 <details id="renderPreviewDetails" open>
 <summary>Rendered Graphic</summary>
 <div class="render-panel__body">
+<section id="renderPreviewErrorPanel" aria-labelledby="renderPreviewErrorHeading" hidden>
+<h2 id="renderPreviewErrorHeading">Render Errors</h2>
+<ul id="renderPreviewErrorList"></ul>
+</section>
 <section id="renderPreviewCanvas" tabindex="0" aria-labelledby="renderPreviewCanvasHeading">
 <h3 id="renderPreviewCanvasHeading" class="render-panel__subheading">Rendered Image</h3>
 <p id="renderPreviewPlaceholder">Render the SVG to preview it here.</p>

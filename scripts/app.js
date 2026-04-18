@@ -1,5 +1,6 @@
 const STORAGE_KEY = "shapeCrafter.files";
 const SHORTCUTS_KEY = "shapeCrafter.shortcuts";
+const SETTINGS_KEY = "shapeCrafter.settings";
 const BASE_TITLE = "shapeCrafter - BlindSVG";
 const BRAILLE_TABLES = {
 	grade1: "unicode.dis,en-ueb-g1.ctb",
@@ -83,8 +84,10 @@ const state = {
 	pendingFocusTarget: null,
 	shouldRestoreFocus: true,
 	shortcuts: loadShortcuts(),
+	settings: loadSettings(),
 	toastTimeoutId: 0,
 	liveRenderTimeoutId: 0,
+	audioContext: null,
 	exportSyncSource: "",
 	exportBaseWidthPx: 1000,
 	exportBaseHeightPx: 1000,
@@ -109,6 +112,8 @@ const elements = {
 	renderPreviewCanvas: document.getElementById("renderPreviewCanvas"),
 	renderPreviewCanvasHeading: document.getElementById("renderPreviewCanvasHeading"),
 	renderPreviewPlaceholder: document.getElementById("renderPreviewPlaceholder"),
+	renderPreviewErrorPanel: document.getElementById("renderPreviewErrorPanel"),
+	renderPreviewErrorList: document.getElementById("renderPreviewErrorList"),
 	fullscreenRenderCanvas: document.getElementById("fullscreenRenderCanvas"),
 	fullscreenRenderPlaceholder: document.getElementById("fullscreenRenderPlaceholder"),
 	renderMeta: document.getElementById("renderMeta"),
@@ -117,7 +122,9 @@ const elements = {
 	renameCurrentFileButton: document.getElementById("renameCurrentFileButton"),
 	deleteCurrentFileButton: document.getElementById("deleteCurrentFileButton"),
 	liveViewToggle: document.getElementById("liveViewToggle"),
-	errorSuppressionToggle: document.getElementById("errorSuppressionToggle"),
+	renderDelayInput: document.getElementById("renderDelayInput"),
+	renderDelayValue: document.getElementById("renderDelayValue"),
+	renderSoundToggle: document.getElementById("renderSoundToggle"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -191,7 +198,8 @@ const elements = {
 	toast: document.getElementById("toast"),
 	openFullscreenButton: document.getElementById("openFullscreenButton"),
 	closeFullscreenButton: document.getElementById("closeFullscreenButton"),
-	fileActionsDetails: document.getElementById("fileActionsDetails")
+	fileActionsButton: document.getElementById("fileActionsButton"),
+	fileActionsMenu: document.getElementById("fileActionsMenu")
 };
 
 document.getElementById("copyrightYear").textContent = new Date().getFullYear();
@@ -211,7 +219,7 @@ document.getElementById("saveButton").addEventListener("click", saveCurrentFile)
 document.getElementById("downloadButton").addEventListener("click", downloadSvg);
 document.getElementById("backToHomeFromEditorButton").addEventListener("click", returnHome);
 document.getElementById("renderButton").addEventListener("click", () => {
-	renderSvg({ suppressErrors: shouldSuppressErrors() });
+	renderSvg({ suppressErrors: false, source: "manual" });
 });
 document.getElementById("printButton").addEventListener("click", printRenderedSvg);
 elements.openFullscreenButton.addEventListener("click", openFullscreenGraphic);
@@ -235,6 +243,7 @@ document.getElementById("jumpToLineButton").addEventListener("click", (event) =>
 document.getElementById("exportRasterButton").addEventListener("click", (event) => {
 	state.lastFocusedTrigger = event.currentTarget;
 	syncExportDimensionsFromSvg();
+	closeFileActionsMenu();
 	openDialog(elements.exportDialog, elements.exportDialogHeading);
 });
 document.getElementById("resetShortcutButton").addEventListener("click", () => {
@@ -266,7 +275,8 @@ elements.exportUnitsInput.addEventListener("change", syncExportUnits);
 elements.exportWidthInput.addEventListener("input", () => syncExportDimensionPair("width"));
 elements.exportHeightInput.addEventListener("input", () => syncExportDimensionPair("height"));
 elements.liveViewToggle.addEventListener("change", handleLiveViewChange);
-elements.errorSuppressionToggle.addEventListener("change", handleErrorSuppressionChange);
+elements.renderDelayInput.addEventListener("input", handleRenderDelayChange);
+elements.renderSoundToggle.addEventListener("change", handleRenderSoundChange);
 elements.attributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromDesktop);
 elements.mobileAttributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromMobile);
 elements.addSelectedPrimitiveButton.addEventListener("click", addSelectedPrimitiveFromPicker);
@@ -293,6 +303,16 @@ elements.newFileForm.addEventListener("submit", (event) => {
 	if (elements.liveViewToggle.checked) {
 		scheduleLiveRender();
 	}
+});
+
+[
+	document.getElementById("printButton"),
+	document.getElementById("saveButton"),
+	document.getElementById("downloadButton"),
+	elements.renameCurrentFileButton,
+	elements.deleteCurrentFileButton
+].forEach((button) => {
+	button.addEventListener("click", closeFileActionsMenu);
 });
 
 elements.shapeForm.addEventListener("submit", (event) => {
@@ -414,8 +434,8 @@ initBrailleConverter();
 renderFileList();
 setActiveView("home");
 syncAttributePromptToggles(elements.attributePromptToggle.checked);
+syncSettingsInputs();
 updateRenderButtonVisibility();
-updateLiveViewControls();
 
 function openShortcutsDialog() {
 	syncShortcutInputs();
@@ -433,10 +453,10 @@ function prepareNewFileDialog() {
 }
 
 function handleLiveViewChange() {
-	updateLiveViewControls();
 	updateRenderButtonVisibility();
 	if (elements.liveViewToggle.checked) {
 		clearRenderErrors();
+		clearInlineRenderErrors();
 		scheduleLiveRender();
 		return;
 	}
@@ -444,33 +464,36 @@ function handleLiveViewChange() {
 	window.clearTimeout(state.liveRenderTimeoutId);
 }
 
-function handleErrorSuppressionChange() {
-	if (shouldSuppressErrors()) {
-		clearRenderErrors();
-	}
-}
-
-function shouldSuppressErrors() {
-	return elements.liveViewToggle.checked && elements.errorSuppressionToggle.checked;
-}
-
 function updateRenderButtonVisibility() {
 	document.getElementById("renderButton").hidden = elements.liveViewToggle.checked;
 }
 
-function updateLiveViewControls() {
-	const liveViewIsOn = elements.liveViewToggle.checked;
-	elements.errorSuppressionToggle.disabled = !liveViewIsOn;
-	if (!liveViewIsOn) {
-		elements.errorSuppressionToggle.checked = false;
-	}
+function handleRenderDelayChange() {
+	state.settings.renderDelay = Number(elements.renderDelayInput.value);
+	updateRenderDelayValue();
+	persistSettings();
+}
+
+function handleRenderSoundChange() {
+	state.settings.renderSound = elements.renderSoundToggle.checked;
+	persistSettings();
 }
 
 function scheduleLiveRender() {
 	window.clearTimeout(state.liveRenderTimeoutId);
 	state.liveRenderTimeoutId = window.setTimeout(() => {
-		renderSvg({ suppressErrors: shouldSuppressErrors(), announceSuccess: false, source: "live" });
-	}, 1500);
+		renderSvg({ suppressErrors: true, announceSuccess: false, source: "live" });
+	}, state.settings.renderDelay * 1000);
+}
+
+function syncSettingsInputs() {
+	elements.renderDelayInput.value = String(state.settings.renderDelay);
+	updateRenderDelayValue();
+	elements.renderSoundToggle.checked = state.settings.renderSound;
+}
+
+function updateRenderDelayValue() {
+	elements.renderDelayValue.textContent = `${Number(state.settings.renderDelay).toFixed(1)} seconds`;
 }
 
 function initBrailleConverter() {
@@ -1103,7 +1126,9 @@ function renderSvg(options = {}) {
 	sanitizeSvg(svg);
 	prepareRenderedSvg(svg);
 	clearRenderErrors();
+	clearInlineRenderErrors();
 	updateRenderedOutput(svg);
+	playRenderSound();
 	if (announceSuccess && renderSource !== "live") {
 		setStatus("SVG rendered.");
 		if (renderSource === "manual") {
@@ -1158,10 +1183,7 @@ function downloadSvg() {
 
 function handleRenderFailure(errors, suppressErrors) {
 	if (suppressErrors) {
-		clearRenderErrors();
-		if (!state.lastRenderedMarkup && elements.renderMeta) {
-			elements.renderMeta.textContent = "Rendered output will appear here once the SVG is valid.";
-		}
+		presentInlineRenderErrors(errors);
 		return false;
 	}
 
@@ -1192,8 +1214,92 @@ function resetRenderedOutput() {
 	if (elements.renderMeta) {
 		elements.renderMeta.textContent = "Rendered output will appear here.";
 	}
+	clearInlineRenderErrors();
 	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
 	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderPlaceholder);
+}
+
+function presentInlineRenderErrors(errors) {
+	clearRenderErrors();
+	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
+	elements.renderPreviewErrorList.replaceChildren();
+
+	const fragment = document.createDocumentFragment();
+	const errorItems = errors.length ? errors : [
+		{
+			line: 1,
+			column: 1,
+			rawMessage: "The browser found an SVG parsing error."
+		}
+	];
+
+	errorItems.forEach((error) => {
+		const item = document.createElement("li");
+		item.textContent = formatErrorItem(error);
+		fragment.appendChild(item);
+	});
+
+	elements.renderPreviewErrorList.appendChild(fragment);
+	elements.renderPreviewErrorPanel.hidden = false;
+}
+
+function clearInlineRenderErrors() {
+	elements.renderPreviewErrorList.replaceChildren();
+	elements.renderPreviewErrorPanel.hidden = true;
+}
+
+function closeFileActionsMenu() {
+	if (elements.fileActionsMenu && elements.fileActionsMenu.matches(":popover-open")) {
+		elements.fileActionsMenu.hidePopover();
+	}
+}
+
+function playRenderSound() {
+	if (!state.settings.renderSound) {
+		return;
+	}
+
+	const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+	if (!AudioContextConstructor) {
+		return;
+	}
+
+	if (!state.audioContext) {
+		state.audioContext = new AudioContextConstructor();
+	}
+
+	const context = state.audioContext;
+	if (context.state === "suspended") {
+		context.resume().catch(() => {});
+	}
+
+	const now = context.currentTime;
+	const masterGain = context.createGain();
+	const filter = context.createBiquadFilter();
+	const chordFrequencies = [261.63, 329.63, 392];
+	const duration = 1.6;
+
+	filter.type = "lowpass";
+	filter.frequency.setValueAtTime(1400, now);
+	filter.Q.setValueAtTime(0.6, now);
+	masterGain.gain.setValueAtTime(0.0001, now);
+	masterGain.gain.linearRampToValueAtTime(0.03, now + 0.35);
+	masterGain.gain.linearRampToValueAtTime(0.022, now + 0.95);
+	masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+	filter.connect(masterGain);
+	masterGain.connect(context.destination);
+
+	chordFrequencies.forEach((frequency, index) => {
+		const oscillator = context.createOscillator();
+		const voiceGain = context.createGain();
+		oscillator.type = index === 0 ? "triangle" : "sine";
+		oscillator.frequency.setValueAtTime(frequency, now);
+		voiceGain.gain.setValueAtTime(index === 0 ? 0.9 : 0.6, now);
+		oscillator.connect(voiceGain);
+		voiceGain.connect(filter);
+		oscillator.start(now);
+		oscillator.stop(now + duration);
+	});
 }
 
 function openFullscreenGraphic() {
@@ -1591,6 +1697,33 @@ function loadShortcuts() {
 	} catch (error) {
 		return cloneShortcuts(defaultShortcuts);
 	}
+}
+
+function loadSettings() {
+	try {
+		const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+		return {
+			renderDelay: normalizeRenderDelay(savedSettings.renderDelay),
+			renderSound: Boolean(savedSettings.renderSound)
+		};
+	} catch (error) {
+		return {
+			renderDelay: 1.5,
+			renderSound: false
+		};
+	}
+}
+
+function persistSettings() {
+	localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+}
+
+function normalizeRenderDelay(value) {
+	const numericValue = Number(value);
+	if (!Number.isFinite(numericValue)) {
+		return 1.5;
+	}
+	return Math.min(3, Math.max(0.5, Number(numericValue.toFixed(1))));
 }
 
 function describeShortcut(shortcut) {

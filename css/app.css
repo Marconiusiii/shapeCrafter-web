@@ -121,7 +121,6 @@ dialog {
 #helpDetails,
 #fileLibraryDetails,
 #editorSettingsDetails,
-#fileActionsDetails,
 .primitive-panel details,
 #svgCodeReference details,
 #renderPreviewDetails {
@@ -135,7 +134,6 @@ dialog {
 #helpDetails summary,
 #fileLibraryDetails summary,
 #editorSettingsDetails summary,
-#fileActionsDetails summary,
 .primitive-panel summary,
 #svgCodeReference details summary,
 #renderPreviewDetails summary {
@@ -146,7 +144,6 @@ dialog {
 #helpDetails[open],
 #fileLibraryDetails[open],
 #editorSettingsDetails[open],
-#fileActionsDetails[open],
 .primitive-panel details[open],
 #svgCodeReference details[open],
 #renderPreviewDetails[open] {
@@ -159,10 +156,43 @@ dialog {
 	gap: 0.75rem;
 }
 
+.file-actions-popdown {
+	position: relative;
+	margin-top: 1.25rem;
+}
+
+#fileActionsButton {
+	background: #111;
+	color: #fff;
+}
+
+#fileActionsMenu {
+	position: absolute;
+	inset: auto auto auto 0;
+	width: min(18rem, calc(100vw - 2rem));
+	margin: 0.4rem 0 0;
+	padding: 0.75rem;
+	border: 2px solid #111;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.18);
+}
+
+#fileActionsMenu::backdrop {
+	background: transparent;
+}
+
 #liveViewHelp,
-#errorSuppressionHelp {
+#renderDelayHelp,
+#renderSoundHelp,
+#renderDelayValue {
 	margin: -0.25rem 0 0;
 	color: #314550;
+}
+
+.slider-row {
+	display: grid;
+	gap: 0.5rem;
 }
 
 #workspaceSection {
@@ -374,6 +404,24 @@ button:focus,
 
 .status-message:empty {
 	display: none;
+}
+
+#renderPreviewErrorPanel {
+	display: grid;
+	gap: 0.5rem;
+	padding: 0.85rem 1rem;
+	border-left: 4px solid #7a120a;
+	background: #fff1ef;
+}
+
+#renderPreviewErrorPanel h2 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+#renderPreviewErrorList {
+	margin: 0;
+	padding-left: 1.25rem;
 }
 
 .render-panel {
@@ -722,7 +770,6 @@ code {
 	#helpDetails,
 	#fileLibraryDetails,
 	#editorSettingsDetails,
-	#fileActionsDetails,
 	.primitive-panel details,
 	#svgCodeReference details,
 	#renderPreviewDetails,
@@ -741,7 +788,6 @@ code {
 	#helpDetails[open],
 	#fileLibraryDetails[open],
 	#editorSettingsDetails[open],
-	#fileActionsDetails[open],
 	.primitive-panel details[open],
 	#svgCodeReference details[open],
 	#renderPreviewDetails[open] {
@@ -753,7 +799,9 @@ code {
 	#fileLibrarySummary,
 	#fileTable caption,
 	#liveViewHelp,
-	#errorSuppressionHelp,
+	#renderDelayHelp,
+	#renderSoundHelp,
+	#renderDelayValue,
 	#renderPreviewPlaceholder,
 	#fullscreenRenderPlaceholder {
 		color: #d7e2e8;
@@ -771,16 +819,29 @@ code {
 		color: #fff1ef;
 	}
 
+	#renderPreviewErrorPanel {
+		background: #321615;
+		border-left-color: #ff8f82;
+		color: #fff1ef;
+	}
+
 	#renderPreviewCanvas,
 	#fullscreenRenderCanvas {
 		background: #24313a;
 	}
 
 	#renderButton,
+	#fileActionsButton,
 	#addSelectedPrimitiveButton,
 	#printButton {
 		background: #f3f6f8;
 		color: #121619;
+	}
+
+	#fileActionsMenu {
+		background: #1b2328;
+		border-color: #dbe6ec;
+		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
 	}
 
 	button:hover,
