@@ -290,8 +290,8 @@ elements.fileNameInput.addEventListener("invalid", () => {
 elements.exportUnitsInput.addEventListener("change", syncExportUnits);
 elements.exportWidthInput.addEventListener("input", () => syncExportDimensionPair("width"));
 elements.exportHeightInput.addEventListener("input", () => syncExportDimensionPair("height"));
-elements.exportWidthInput.addEventListener("input", updateExportInputAccessibility);
-elements.exportHeightInput.addEventListener("input", updateExportInputAccessibility);
+elements.exportWidthInput.addEventListener("input", validateExportInputs);
+elements.exportHeightInput.addEventListener("input", validateExportInputs);
 elements.exportDpiInput.addEventListener("input", validateExportDpiInput);
 elements.exportWidthInput.addEventListener("invalid", () => validateExportDimensionInput(elements.exportWidthInput, "width"));
 elements.exportHeightInput.addEventListener("invalid", () => validateExportDimensionInput(elements.exportHeightInput, "height"));
@@ -1795,7 +1795,6 @@ function sanitizeSvg(svg) {
 }
 
 function prepareRenderedSvg(svg) {
-	svg.setAttribute("role", "img");
 	svg.setAttribute("tabindex", "0");
 	if (!svg.hasAttribute("focusable")) {
 		svg.setAttribute("focusable", "true");
