@@ -169,6 +169,7 @@
 </section>
 </div>
 
+<div id="editorFileActionsHost">
 <div class="file-actions-popdown">
 <button type="button" id="fileActionsButton" aria-expanded="false" aria-controls="fileActionsMenu">File Actions</button>
 <div id="fileActionsMenu" class="file-actions-menu" hidden inert>
@@ -180,6 +181,7 @@
 <li><button type="button" id="renameCurrentFileButton">Rename File</button></li>
 <li><button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button></li>
 </ul>
+</div>
 </div>
 </div>
 
@@ -438,8 +440,13 @@
 </footer>
 
 <main id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">
+<div class="fullscreen-toolbar non-printing">
 <h1 id="fullscreenGraphicHeading" class="non-printing" tabindex="-1">Full Screen Graphic</h1>
+<div class="fullscreen-toolbar__actions">
+<div id="fullscreenFileActionsHost"></div>
 <button type="button" id="closeFullscreenButton" class="non-printing">Close Graphic</button>
+</div>
+</div>
 <div id="fullscreenRenderCanvas">
 <p id="fullscreenRenderPlaceholder">Render the SVG to preview it full screen.</p>
 </div>

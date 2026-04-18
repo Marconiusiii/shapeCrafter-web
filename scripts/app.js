@@ -115,6 +115,8 @@ const elements = {
 	editorView: document.getElementById("editorView"),
 	fullscreenView: document.getElementById("fullscreenView"),
 	fullscreenGraphicHeading: document.getElementById("fullscreenGraphicHeading"),
+	editorFileActionsHost: document.getElementById("editorFileActionsHost"),
+	fullscreenFileActionsHost: document.getElementById("fullscreenFileActionsHost"),
 	renderPreviewDetails: document.getElementById("renderPreviewDetails"),
 	renderPreviewCanvas: document.getElementById("renderPreviewCanvas"),
 	renderPreviewCanvasHeading: document.getElementById("renderPreviewCanvasHeading"),
@@ -1159,6 +1161,7 @@ function returnHome() {
 
 function setActiveView(viewName) {
 	const showFullscreen = viewName === "fullscreen";
+	moveFileActionsToHost(showFullscreen ? elements.fullscreenFileActionsHost : elements.editorFileActionsHost);
 	document.body.classList.toggle("is-fullscreen-graphic", showFullscreen);
 	syncRegion(elements.skipLink, !showFullscreen);
 	syncRegion(elements.siteHeader, !showFullscreen);
@@ -1169,6 +1172,15 @@ function setActiveView(viewName) {
 	syncRegion(elements.editorView, !showFullscreen && viewName === "editor");
 	syncRegion(elements.fullscreenView, showFullscreen);
 	updateDocumentTitle({ view: viewName });
+}
+
+function moveFileActionsToHost(host) {
+	if (!host || !elements.fileActionsPopdown) {
+		return;
+	}
+
+	closeFileActionsMenu();
+	host.appendChild(elements.fileActionsPopdown);
 }
 
 function syncRegion(element, isActive) {
@@ -1427,7 +1439,7 @@ function playRenderSound() {
 }
 
 function openFullscreenGraphic() {
-	const rendered = renderSvg({ suppressErrors: shouldSuppressErrors(), announceSuccess: false, source: "fullscreen" });
+	const rendered = renderSvg({ suppressErrors: true, announceSuccess: false, source: "fullscreen" });
 	if (!rendered && !state.lastRenderedMarkup) {
 		return;
 	}
