@@ -511,10 +511,10 @@ function initBrailleConverter() {
 	setBrailleConverterReady(false);
 	setBrailleConverterStatus("Loading braille converter.");
 	state.brailleApi = new LiblouisEasyApiAsync({
-		capi: getPathFromOrigin("scripts/vendor/liblouis/build-no-tables-utf16.js"),
-		easyapi: getPathFromOrigin("scripts/vendor/liblouis/easy-api.js")
+		capi: getPathFromOrigin("braille/build-no-tables-utf16.js"),
+		easyapi: getPathFromOrigin("braille/easy-api.js")
 	});
-	state.brailleApi.enableOnDemandTableLoading(getPathFromOrigin("scripts/vendor/liblouis/tables/"), () => {
+	state.brailleApi.enableOnDemandTableLoading(getPathFromOrigin("braille/tables/"), () => {
 		state.brailleConverterReady = true;
 		setBrailleConverterReady(true);
 		setBrailleConverterStatus("Braille converter ready. Enter text and press Convert to Braille Unicode.");
