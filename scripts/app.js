@@ -199,6 +199,8 @@ const elements = {
 	confirmDeleteButton: document.getElementById("confirmDeleteButton"),
 	exportTypeInput: document.getElementById("exportTypeInput"),
 	exportUnitsInput: document.getElementById("exportUnitsInput"),
+	exportWidthLabel: document.getElementById("exportWidthLabel"),
+	exportHeightLabel: document.getElementById("exportHeightLabel"),
 	scaleProportionatelyInput: document.getElementById("scaleProportionatelyInput"),
 	exportWidthInput: document.getElementById("exportWidthInput"),
 	exportHeightInput: document.getElementById("exportHeightInput"),
@@ -1548,7 +1550,9 @@ function syncExportDimensionsFromSvg() {
 	setExportInputStep("px");
 	elements.exportWidthInput.value = width;
 	elements.exportHeightInput.value = height;
-	updateExportInputAccessibility();
+	state.exportSyncSource = "px";
+	updateExportLabels();
+	validateExportInputs();
 }
 
 function numericAttribute(value) {
@@ -1561,23 +1565,25 @@ function numericAttribute(value) {
 }
 
 function syncExportUnits() {
+	const nextUnits = elements.exportUnitsInput.value;
 	const width = Number(elements.exportWidthInput.value);
 	const height = Number(elements.exportHeightInput.value);
 	const dpi = Number(elements.exportDpiInput.value) || 96;
 	const currentUnits = state.exportSyncSource || "px";
 	const pixelSize = convertExportDimensionsToPixels(width, height, currentUnits, dpi);
-	const convertedSize = convertPixelsToExportDimensions(pixelSize.width, pixelSize.height, elements.exportUnitsInput.value, dpi);
-	setExportInputStep(elements.exportUnitsInput.value);
+	const convertedSize = convertPixelsToExportDimensions(pixelSize.width, pixelSize.height, nextUnits, dpi);
+	setExportInputStep(nextUnits);
 	elements.exportWidthInput.value = formatExportNumber(convertedSize.width);
 	elements.exportHeightInput.value = formatExportNumber(convertedSize.height);
-	state.exportSyncSource = elements.exportUnitsInput.value;
-	updateExportInputAccessibility();
+	state.exportSyncSource = nextUnits;
+	updateExportLabels();
+	validateExportInputs();
 }
 
 function syncExportDimensionPair(changedDimension) {
 	if (!elements.scaleProportionatelyInput.checked) {
 		state.exportSyncSource = elements.exportUnitsInput.value;
-		updateExportInputAccessibility();
+		validateExportInputs();
 		return;
 	}
 
@@ -1594,7 +1600,7 @@ function syncExportDimensionPair(changedDimension) {
 	}
 
 	state.exportSyncSource = elements.exportUnitsInput.value;
-	updateExportInputAccessibility();
+	validateExportInputs();
 }
 
 function convertExportDimensionsToPixels(width, height, units, dpi) {
@@ -1658,24 +1664,10 @@ function formatExportNumber(value) {
 	return String(Number(value.toFixed(2)));
 }
 
-function updateExportInputAccessibility() {
+function validateExportInputs() {
 	validateExportDimensionInput(elements.exportWidthInput, "width");
 	validateExportDimensionInput(elements.exportHeightInput, "height");
-	updateExportDimensionValueText(elements.exportWidthInput);
-	updateExportDimensionValueText(elements.exportHeightInput);
 	validateExportDpiInput();
-}
-
-function updateExportDimensionValueText(input) {
-	const value = Number(input.value);
-	const unit = describeExportUnit(elements.exportUnitsInput.value, value);
-
-	if (!Number.isFinite(value) || !unit) {
-		input.removeAttribute("aria-valuetext");
-		return;
-	}
-
-	input.setAttribute("aria-valuetext", `${formatSpokenExportNumber(value)} ${unit}`);
 }
 
 function validateExportForm() {
@@ -1690,6 +1682,12 @@ function validateExportForm() {
 	}
 
 	return widthValid && heightValid && dpiValid;
+}
+
+function updateExportLabels() {
+	const unitText = describeExportUnitLabel(elements.exportUnitsInput.value);
+	elements.exportWidthLabel.textContent = `Width in ${unitText}`;
+	elements.exportHeightLabel.textContent = `Height in ${unitText}`;
 }
 
 function validateExportDimensionInput(input, dimensionName) {
@@ -1731,14 +1729,6 @@ function validateExportDpiInput() {
 	return true;
 }
 
-function formatSpokenExportNumber(value) {
-	if (Math.abs(value - Math.round(value)) < 0.001) {
-		return String(Math.round(value));
-	}
-
-	return String(Number(value.toFixed(2)));
-}
-
 function describeExportUnit(units, value) {
 	const singular = Math.abs(value - 1) < 0.001;
 
@@ -1755,6 +1745,23 @@ function describeExportUnit(units, value) {
 			return singular ? "percent" : "percent";
 		default:
 			return singular ? "pixel" : "pixels";
+	}
+}
+
+function describeExportUnitLabel(units) {
+	switch (units) {
+		case "in":
+			return "Inches";
+		case "cm":
+			return "Centimeters";
+		case "mm":
+			return "Millimeters";
+		case "pt":
+			return "Points";
+		case "percent":
+			return "Percent";
+		default:
+			return "Pixels";
 	}
 }
 
@@ -1788,6 +1795,7 @@ function sanitizeSvg(svg) {
 }
 
 function prepareRenderedSvg(svg) {
+	svg.setAttribute("role", "img");
 	svg.setAttribute("tabindex", "0");
 	if (!svg.hasAttribute("focusable")) {
 		svg.setAttribute("focusable", "true");
