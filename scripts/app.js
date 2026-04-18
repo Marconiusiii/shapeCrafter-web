@@ -2,6 +2,8 @@ const STORAGE_KEY = "shapeCrafter.files";
 const SHORTCUTS_KEY = "shapeCrafter.shortcuts";
 const SETTINGS_KEY = "shapeCrafter.settings";
 const BASE_TITLE = "shapeCrafter - BlindSVG";
+const MESSAGE_TIMEOUT_MS = 5000;
+const MESSAGE_FADE_MS = 240;
 const BRAILLE_TABLES = {
 	grade1: "unicode.dis,en-ueb-g1.ctb",
 	grade2: "unicode.dis,en-ueb-g2.ctb",
@@ -86,6 +88,8 @@ const state = {
 	shortcuts: loadShortcuts(),
 	settings: loadSettings(),
 	toastTimeoutId: 0,
+	toastFadeTimeoutId: 0,
+	editorAnnouncementTimeoutId: 0,
 	liveRenderTimeoutId: 0,
 	audioContext: null,
 	exportSyncSource: "",
@@ -96,6 +100,9 @@ const state = {
 	lastRenderedMarkup: "",
 	printTarget: "preview"
 };
+
+const messageTimeouts = new WeakMap();
+const messageFadeTimeouts = new WeakMap();
 
 const elements = {
 	skipLink: document.getElementById("skip-link"),
@@ -504,12 +511,12 @@ function updateRenderDelayValue() {
 function initBrailleConverter() {
 	if (typeof LiblouisEasyApiAsync !== "function") {
 		setBrailleConverterReady(false);
-		setBrailleConverterStatus("Braille converter is unavailable right now.");
+		setBrailleConverterStatus("Braille converter is unavailable right now.", { persist: true });
 		return;
 	}
 
 	setBrailleConverterReady(false);
-	setBrailleConverterStatus("Loading braille converter.");
+	setBrailleConverterStatus("Loading braille converter.", { persist: true });
 	state.brailleApi = new LiblouisEasyApiAsync({
 		capi: getPathFromOrigin("braille/build-no-tables-utf16.js"),
 		easyapi: getPathFromOrigin("braille/easy-api.js")
@@ -2010,11 +2017,15 @@ function outdentSelection() {
 }
 
 function announceEditorChange(message) {
+	window.clearTimeout(state.editorAnnouncementTimeoutId);
 	elements.editorAnnouncer.textContent = "";
 	window.setTimeout(() => {
 		elements.editorAnnouncer.textContent = "";
 		window.setTimeout(() => {
 			elements.editorAnnouncer.textContent = message;
+			state.editorAnnouncementTimeoutId = window.setTimeout(() => {
+				elements.editorAnnouncer.textContent = "";
+			}, MESSAGE_TIMEOUT_MS);
 		}, 40);
 	}, 10);
 }
@@ -2036,33 +2047,72 @@ function matchesShortcut(event, shortcut) {
 		&& event.metaKey === needsMeta;
 }
 
-function setStatus(message) {
-	elements.statusMessage.textContent = message;
+function setStatus(message, options = {}) {
+	setTimedMessage(elements.statusMessage, message, options);
 }
 
 function clearStatus() {
-	elements.statusMessage.textContent = "";
+	clearTimedMessage(elements.statusMessage);
 }
 
 function showToast(message) {
 	window.clearTimeout(state.toastTimeoutId);
+	window.clearTimeout(state.toastFadeTimeoutId);
 	elements.toast.textContent = message;
 	elements.toast.hidden = false;
+	elements.toast.classList.remove("is-fading");
 	requestAnimationFrame(() => {
 		elements.toast.classList.add("is-visible");
 	});
 
 	state.toastTimeoutId = window.setTimeout(() => {
 		elements.toast.classList.remove("is-visible");
-		window.setTimeout(() => {
+		elements.toast.classList.add("is-fading");
+		state.toastFadeTimeoutId = window.setTimeout(() => {
 			elements.toast.hidden = true;
 			elements.toast.textContent = "";
-		}, 200);
-	}, 6000);
+			elements.toast.classList.remove("is-fading");
+		}, MESSAGE_FADE_MS);
+	}, MESSAGE_TIMEOUT_MS);
 }
 
-function setBrailleConverterStatus(message) {
-	elements.brailleConverterStatus.textContent = message;
+function setBrailleConverterStatus(message, options = {}) {
+	setTimedMessage(elements.brailleConverterStatus, message, options);
+}
+
+function clearTimedMessage(element) {
+	window.clearTimeout(messageTimeouts.get(element) || 0);
+	window.clearTimeout(messageFadeTimeouts.get(element) || 0);
+	messageTimeouts.delete(element);
+	messageFadeTimeouts.delete(element);
+	element.classList.remove("is-visible", "is-fading");
+	element.textContent = "";
+}
+
+function setTimedMessage(element, message, options = {}) {
+	const persist = Boolean(options.persist);
+	clearTimedMessage(element);
+
+	if (!message) {
+		return;
+	}
+
+	element.textContent = message;
+	requestAnimationFrame(() => {
+		element.classList.add("is-visible");
+	});
+
+	if (persist) {
+		return;
+	}
+
+	messageTimeouts.set(element, window.setTimeout(() => {
+		element.classList.remove("is-visible");
+		element.classList.add("is-fading");
+		messageFadeTimeouts.set(element, window.setTimeout(() => {
+			clearTimedMessage(element);
+		}, MESSAGE_FADE_MS));
+	}, MESSAGE_TIMEOUT_MS));
 }
 
 function updateBrailleConversion() {
