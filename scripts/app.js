@@ -369,7 +369,10 @@ elements.exportForm.addEventListener("submit", async (event) => {
 	event.preventDefault();
 	try {
 		await exportRaster();
-		closeDialog(elements.exportDialog);
+		closeDialog(elements.exportDialog, { restoreFocus: false });
+		requestAnimationFrame(() => {
+			elements.fileActionsButton.focus();
+		});
 		setStatus("Raster export downloaded.");
 	} catch (error) {
 		setStatus(error.message);
@@ -1546,6 +1549,7 @@ function syncExportDimensionsFromSvg() {
 	state.exportBaseHeightPx = height;
 	state.exportSyncSource = "";
 	elements.exportUnitsInput.value = "px";
+	elements.exportTypeInput.value = "image/png";
 	elements.scaleProportionatelyInput.checked = true;
 	setExportInputStep("px");
 	elements.exportWidthInput.value = width;
@@ -1764,6 +1768,7 @@ function describeExportUnitLabel(units) {
 			return "Pixels";
 	}
 }
+
 
 function loadSvgImage(source) {
 	return new Promise((resolve, reject) => {
