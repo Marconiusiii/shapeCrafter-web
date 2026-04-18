@@ -52,6 +52,7 @@ shapeCrafter Web is designed for people actively learning from BlindSVG and buil
 - Light mode and system dark mode support
 - Print-only SVG output for embossing and tactile workflows
 - Raster export with output units, DPI, and proportional scaling
+- Custom File Actions action panel chosen over native HTML Popover because VoiceOver support on macOS and iOS was not reliable enough for this project
 
 ## SVG Reference Help Included In The Editor
 

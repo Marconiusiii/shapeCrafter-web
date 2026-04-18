@@ -197,6 +197,7 @@ const elements = {
 	toast: document.getElementById("toast"),
 	openFullscreenButton: document.getElementById("openFullscreenButton"),
 	closeFullscreenButton: document.getElementById("closeFullscreenButton"),
+	fileActionsPopdown: document.querySelector(".file-actions-popdown"),
 	fileActionsButton: document.getElementById("fileActionsButton"),
 	fileActionsMenu: document.getElementById("fileActionsMenu")
 };
@@ -226,7 +227,6 @@ elements.closeFullscreenButton.addEventListener("click", closeFullscreenGraphic)
 elements.fileActionsButton.addEventListener("click", handleFileActionsButtonClick);
 elements.fileActionsButton.addEventListener("keydown", handleFileActionsButtonKeydown);
 elements.fileActionsMenu.addEventListener("keydown", handleFileActionsMenuKeydown);
-elements.fileActionsMenu.addEventListener("toggle", handleFileActionsMenuToggle);
 elements.renameCurrentFileButton.addEventListener("click", () => {
 	if (state.currentFileId) {
 		renameFile(state.currentFileId);
@@ -263,6 +263,8 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
 		closeDialog(dialog);
 	});
 });
+
+document.addEventListener("pointerdown", handleDocumentPointerDown);
 
 elements.fileNameInput.addEventListener("input", () => {
 	elements.fileNameInput.setCustomValidity("");
@@ -1252,14 +1254,20 @@ function clearInlineRenderErrors() {
 }
 
 function closeFileActionsMenu() {
-	if (elements.fileActionsMenu && elements.fileActionsMenu.matches(":popover-open")) {
-		elements.fileActionsMenu.hidePopover();
+	if (!isFileActionsMenuOpen()) {
+		return;
 	}
+
+	elements.fileActionsMenu.hidden = true;
+	elements.fileActionsMenu.setAttribute("inert", "");
+	elements.fileActionsButton.setAttribute("aria-expanded", "false");
 }
 
 function openFileActionsMenu(focusMode = "first") {
-	if (!elements.fileActionsMenu.matches(":popover-open")) {
-		elements.fileActionsMenu.showPopover();
+	if (!isFileActionsMenuOpen()) {
+		elements.fileActionsMenu.hidden = false;
+		elements.fileActionsMenu.removeAttribute("inert");
+		elements.fileActionsButton.setAttribute("aria-expanded", "true");
 	}
 
 	const items = getFileActionsMenuItems();
@@ -1274,7 +1282,7 @@ function openFileActionsMenu(focusMode = "first") {
 }
 
 function toggleFileActionsMenu() {
-	if (elements.fileActionsMenu.matches(":popover-open")) {
+	if (isFileActionsMenuOpen()) {
 		closeFileActionsMenu();
 		return;
 	}
@@ -1284,6 +1292,10 @@ function toggleFileActionsMenu() {
 
 function getFileActionsMenuItems() {
 	return [...elements.fileActionsMenu.querySelectorAll("button")];
+}
+
+function isFileActionsMenuOpen() {
+	return !elements.fileActionsMenu.hidden;
 }
 
 function handleFileActionsButtonClick() {
@@ -1347,8 +1359,16 @@ function handleFileActionsMenuKeydown(event) {
 	}
 }
 
-function handleFileActionsMenuToggle() {
-	elements.fileActionsButton.setAttribute("aria-expanded", elements.fileActionsMenu.matches(":popover-open") ? "true" : "false");
+function handleDocumentPointerDown(event) {
+	if (!isFileActionsMenuOpen()) {
+		return;
+	}
+
+	if (elements.fileActionsPopdown && elements.fileActionsPopdown.contains(event.target)) {
+		return;
+	}
+
+	closeFileActionsMenu();
 }
 
 function playRenderSound() {
