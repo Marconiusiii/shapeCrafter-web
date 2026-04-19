@@ -48,11 +48,13 @@
 <section class="intro" id="homeView">
 <h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
 <details id="updatesDetails">
-<summary>Apr 17 Updates</summary>
+<summary>Apr 18 Updates</summary>
 <ul>
-<li>Live View and manual render controls now share the editor screen.</li>
-<li>The rendered SVG can be collapsed, expanded, or opened full screen.</li>
-<li>Mobile SVG element insertion now uses a compact picker above the editor.</li>
+<li>Live View now updates the graphic directly in the editor, with manual rendering still available when needed.</li>
+<li>The render view can be collapsed, opened full screen, printed cleanly, or exported without leaving your work in the Code Editor.</li>
+<li>File actions are grouped into one easier menu, and raster export offers more sizing and unit options.</li>
+<li>The braille converter now supports more English braille choices and works directly inside the editor experience.</li>
+<li>Mobile editing and SVG element insertion have been tightened up to keep the code editor as the main focus.</li>
 </ul>
 </details>
 
@@ -160,7 +162,7 @@
 <h3 id="svgErrorHeading">Errors in SVG Code</h3>
 <ul id="errorList"></ul>
 </section>
-<label for="svgEditor">SVG Code</label>
+<label for="svgEditor">SVG Code Editor</label>
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
 <div class="action-row">
 <button type="button" id="jumpToLineButton" aria-haspopup="dialog">Jump to Line</button>
@@ -205,9 +207,11 @@
 </details>
 </section>
 
-<section class="reference-panel" aria-labelledby="svgCodeReferenceHeading">
-<h2 id="svgCodeReferenceHeading">SVG Code Reference</h2>
+<div class="reference-panel">
+<details id="svgCodeReferenceDetails">
+<summary>SVG Code Reference</summary>
 <div class="reference-content">
+<h2 id="svgCodeReferenceHeading">SVG Code Reference</h2>
 <p>Expand the sections below for quick reminders while you code.</p>
 
 <details>
@@ -405,9 +409,13 @@
 </ul>
 </details>
 </div>
-</section>
+</details>
+</div>
 
-<section class="reference-panel braille-converter-section" aria-labelledby="brailleConverterHeading">
+<div class="reference-panel braille-converter-section">
+<details id="brailleConverterDetails">
+<summary>Braille Converter</summary>
+<div class="reference-content">
 <h2 id="brailleConverterHeading">Braille Converter</h2>
 <p>Enter text, choose a UEB output grade, convert it to braille Unicode, and copy the result into your SVG text code.</p>
 
@@ -438,14 +446,15 @@
 </div>
 
 <p id="brailleConverterStatus" class="status-message" role="status"></p>
-</section>
+</div>
+</details>
 </div>
 </section>
 
 </main>
 
 <footer class="site-footer">
-<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.3.0</p>
+<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.3.1</p>
 </footer>
 
 <main id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">

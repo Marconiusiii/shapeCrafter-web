@@ -122,6 +122,8 @@ dialog {
 #fileLibraryDetails,
 #editorSettingsDetails,
 .primitive-panel details,
+#svgCodeReferenceDetails,
+#brailleConverterDetails,
 #svgCodeReference details,
 #renderPreviewDetails {
 	border: 1px solid #333;
@@ -135,6 +137,8 @@ dialog {
 #fileLibraryDetails summary,
 #editorSettingsDetails summary,
 .primitive-panel summary,
+#svgCodeReferenceDetails summary,
+#brailleConverterDetails summary,
 #svgCodeReference details summary,
 #renderPreviewDetails summary {
 	font-weight: 700;
@@ -145,6 +149,8 @@ dialog {
 #fileLibraryDetails[open],
 #editorSettingsDetails[open],
 .primitive-panel details[open],
+#svgCodeReferenceDetails[open],
+#brailleConverterDetails[open],
 #svgCodeReference details[open],
 #renderPreviewDetails[open] {
 	background: #fff;
@@ -253,6 +259,18 @@ dialog {
 .render-panel,
 .braille-converter-section {
 	padding: 1rem;
+}
+
+#svgCodeReferenceDetails,
+#brailleConverterDetails {
+	display: grid;
+	gap: 1rem;
+	background: linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%);
+}
+
+#svgCodeReferenceDetails[open],
+#brailleConverterDetails[open] {
+	background: #fff;
 }
 
 .primitive-panel {
