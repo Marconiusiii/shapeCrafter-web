@@ -9,12 +9,15 @@ body * {
 	visibility: hidden !important;
 }
 
-#renderCanvas,
-#renderCanvas * {
+body.is-printing-svg[data-print-target="preview"] #renderPreviewCanvas,
+body.is-printing-svg[data-print-target="preview"] #renderPreviewCanvas *,
+body.is-printing-svg[data-print-target="fullscreen"] #fullscreenRenderCanvas,
+body.is-printing-svg[data-print-target="fullscreen"] #fullscreenRenderCanvas * {
 	visibility: visible !important;
 }
 
-#renderCanvas {
+body.is-printing-svg[data-print-target="preview"] #renderPreviewCanvas,
+body.is-printing-svg[data-print-target="fullscreen"] #fullscreenRenderCanvas {
 	position: absolute !important;
 	inset: 0 !important;
 	width: auto !important;
@@ -29,12 +32,14 @@ body * {
 	overflow: visible !important;
 }
 
-#renderCanvasHeading,
-.non-printing {
+body.is-printing-svg[data-print-target="preview"] #renderPreviewCanvas .non-printing,
+body.is-printing-svg[data-print-target="fullscreen"] #fullscreenRenderCanvas .non-printing,
+body.is-printing-svg .non-printing {
 	display: none !important;
 }
 
-#renderCanvas svg {
+body.is-printing-svg[data-print-target="preview"] #renderPreviewCanvas svg,
+body.is-printing-svg[data-print-target="fullscreen"] #fullscreenRenderCanvas svg {
 	display: block !important;
 	margin: 0 !important;
 	padding: 0 !important;

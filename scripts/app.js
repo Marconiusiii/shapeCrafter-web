@@ -1,6 +1,9 @@
 const STORAGE_KEY = "shapeCrafter.files";
 const SHORTCUTS_KEY = "shapeCrafter.shortcuts";
+const SETTINGS_KEY = "shapeCrafter.settings";
 const BASE_TITLE = "shapeCrafter - BlindSVG";
+const MESSAGE_TIMEOUT_MS = 5000;
+const MESSAGE_FADE_MS = 240;
 const BRAILLE_TABLES = {
 	grade1: "unicode.dis,en-ueb-g1.ctb",
 	grade2: "unicode.dis,en-ueb-g2.ctb",
@@ -83,28 +86,53 @@ const state = {
 	pendingFocusTarget: null,
 	shouldRestoreFocus: true,
 	shortcuts: loadShortcuts(),
+	settings: loadSettings(),
 	toastTimeoutId: 0,
+	toastFadeTimeoutId: 0,
+	editorAnnouncementTimeoutId: 0,
+	liveRenderTimeoutId: 0,
+	audioContext: null,
 	exportSyncSource: "",
 	exportBaseWidthPx: 1000,
 	exportBaseHeightPx: 1000,
 	brailleConverterReady: false,
-	brailleApi: null
+	brailleApi: null,
+	lastRenderedMarkup: "",
+	printTarget: "preview"
 };
 
+const messageTimeouts = new WeakMap();
+const messageFadeTimeouts = new WeakMap();
+
 const elements = {
+	skipLink: document.getElementById("skip-link"),
+	siteHeader: document.querySelector(".site-header"),
+	mainContent: document.getElementById("mainContent"),
+	siteFooter: document.querySelector(".site-footer"),
 	homeView: document.getElementById("homeView"),
 	homeHeading: document.getElementById("homeHeading"),
 	workspaceSection: document.getElementById("workspaceSection"),
 	editorView: document.getElementById("editorView"),
-	renderView: document.getElementById("renderView"),
-	renderCanvas: document.getElementById("renderCanvas"),
-	renderCanvasHeading: document.getElementById("renderCanvasHeading"),
-	renderViewHeading: document.getElementById("renderViewHeading"),
+	fullscreenView: document.getElementById("fullscreenView"),
+	fullscreenGraphicHeading: document.getElementById("fullscreenGraphicHeading"),
+	editorFileActionsHost: document.getElementById("editorFileActionsHost"),
+	fullscreenFileActionsHost: document.getElementById("fullscreenFileActionsHost"),
+	renderPreviewDetails: document.getElementById("renderPreviewDetails"),
+	renderPreviewCanvas: document.getElementById("renderPreviewCanvas"),
+	renderPreviewCanvasHeading: document.getElementById("renderPreviewCanvasHeading"),
+	renderPreviewPlaceholder: document.getElementById("renderPreviewPlaceholder"),
+	renderPreviewErrorPanel: document.getElementById("renderPreviewErrorPanel"),
+	renderPreviewErrorList: document.getElementById("renderPreviewErrorList"),
+	fullscreenRenderCanvas: document.getElementById("fullscreenRenderCanvas"),
+	fullscreenRenderPlaceholder: document.getElementById("fullscreenRenderPlaceholder"),
 	renderMeta: document.getElementById("renderMeta"),
 	currentFileHeading: document.getElementById("currentFileHeading"),
 	fileMeta: document.getElementById("fileMeta"),
 	renameCurrentFileButton: document.getElementById("renameCurrentFileButton"),
 	deleteCurrentFileButton: document.getElementById("deleteCurrentFileButton"),
+	liveViewToggle: document.getElementById("liveViewToggle"),
+	renderDelayInput: document.getElementById("renderDelayInput"),
+	renderSoundToggle: document.getElementById("renderSoundToggle"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -121,7 +149,10 @@ const elements = {
 	fileTableBody: document.getElementById("fileTableBody"),
 	fileLibrarySummary: document.getElementById("fileLibrarySummary"),
 	attributePromptToggle: document.getElementById("attributePromptToggle"),
+	mobileAttributePromptToggle: document.getElementById("mobileAttributePromptToggle"),
 	primitiveList: document.getElementById("primitiveList"),
+	primitiveSelect: document.getElementById("primitiveSelect"),
+	addSelectedPrimitiveButton: document.getElementById("addSelectedPrimitiveButton"),
 	newFileDialog: document.getElementById("newFileDialog"),
 	newFileForm: document.getElementById("newFileForm"),
 	newFileDialogHeading: document.getElementById("newFileDialogHeading"),
@@ -168,11 +199,18 @@ const elements = {
 	confirmDeleteButton: document.getElementById("confirmDeleteButton"),
 	exportTypeInput: document.getElementById("exportTypeInput"),
 	exportUnitsInput: document.getElementById("exportUnitsInput"),
+	exportWidthLabel: document.getElementById("exportWidthLabel"),
+	exportHeightLabel: document.getElementById("exportHeightLabel"),
 	scaleProportionatelyInput: document.getElementById("scaleProportionatelyInput"),
 	exportWidthInput: document.getElementById("exportWidthInput"),
 	exportHeightInput: document.getElementById("exportHeightInput"),
 	exportDpiInput: document.getElementById("exportDpiInput"),
-	toast: document.getElementById("toast")
+	toast: document.getElementById("toast"),
+	openFullscreenButton: document.getElementById("openFullscreenButton"),
+	closeFullscreenButton: document.getElementById("closeFullscreenButton"),
+	fileActionsPopdown: document.querySelector(".file-actions-popdown"),
+	fileActionsButton: document.getElementById("fileActionsButton"),
+	fileActionsMenu: document.getElementById("fileActionsMenu")
 };
 
 document.getElementById("copyrightYear").textContent = new Date().getFullYear();
@@ -189,13 +227,17 @@ document.getElementById("openShortcutsButton").addEventListener("click", (event)
 });
 
 document.getElementById("saveButton").addEventListener("click", saveCurrentFile);
-document.getElementById("saveFromRenderButton").addEventListener("click", saveCurrentFile);
 document.getElementById("downloadButton").addEventListener("click", downloadSvg);
 document.getElementById("backToHomeFromEditorButton").addEventListener("click", returnHome);
-document.getElementById("backToHomeFromRenderButton").addEventListener("click", returnHome);
-document.getElementById("renderButton").addEventListener("click", renderSvg);
-document.getElementById("returnToCodeButton").addEventListener("click", returnToEditor);
-document.getElementById("printButton").addEventListener("click", () => window.print());
+document.getElementById("renderButton").addEventListener("click", () => {
+	renderSvg({ suppressErrors: false, source: "manual" });
+});
+document.getElementById("printButton").addEventListener("click", printRenderedSvg);
+elements.openFullscreenButton.addEventListener("click", openFullscreenGraphic);
+elements.closeFullscreenButton.addEventListener("click", closeFullscreenGraphic);
+elements.fileActionsButton.addEventListener("click", handleFileActionsButtonClick);
+elements.fileActionsButton.addEventListener("keydown", handleFileActionsButtonKeydown);
+elements.fileActionsMenu.addEventListener("keydown", handleFileActionsMenuKeydown);
 elements.renameCurrentFileButton.addEventListener("click", () => {
 	if (state.currentFileId) {
 		renameFile(state.currentFileId);
@@ -215,6 +257,7 @@ document.getElementById("jumpToLineButton").addEventListener("click", (event) =>
 document.getElementById("exportRasterButton").addEventListener("click", (event) => {
 	state.lastFocusedTrigger = event.currentTarget;
 	syncExportDimensionsFromSvg();
+	closeFileActionsMenu();
 	openDialog(elements.exportDialog, elements.exportDialogHeading);
 });
 document.getElementById("resetShortcutButton").addEventListener("click", () => {
@@ -232,6 +275,8 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
 	});
 });
 
+document.addEventListener("pointerdown", handleDocumentPointerDown);
+
 elements.fileNameInput.addEventListener("input", () => {
 	elements.fileNameInput.setCustomValidity("");
 });
@@ -245,6 +290,18 @@ elements.fileNameInput.addEventListener("invalid", () => {
 elements.exportUnitsInput.addEventListener("change", syncExportUnits);
 elements.exportWidthInput.addEventListener("input", () => syncExportDimensionPair("width"));
 elements.exportHeightInput.addEventListener("input", () => syncExportDimensionPair("height"));
+elements.exportWidthInput.addEventListener("input", validateExportInputs);
+elements.exportHeightInput.addEventListener("input", validateExportInputs);
+elements.exportDpiInput.addEventListener("input", validateExportDpiInput);
+elements.exportWidthInput.addEventListener("invalid", () => validateExportDimensionInput(elements.exportWidthInput, "width"));
+elements.exportHeightInput.addEventListener("invalid", () => validateExportDimensionInput(elements.exportHeightInput, "height"));
+elements.exportDpiInput.addEventListener("invalid", validateExportDpiInput);
+elements.liveViewToggle.addEventListener("change", handleLiveViewChange);
+elements.renderDelayInput.addEventListener("input", handleRenderDelayChange);
+elements.renderSoundToggle.addEventListener("change", handleRenderSoundChange);
+elements.attributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromDesktop);
+elements.mobileAttributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromMobile);
+elements.addSelectedPrimitiveButton.addEventListener("click", addSelectedPrimitiveFromPicker);
 
 elements.newFileForm.addEventListener("submit", (event) => {
 	event.preventDefault();
@@ -256,6 +313,7 @@ elements.newFileForm.addEventListener("submit", (event) => {
 	state.files = upsertFile(file);
 	state.currentFileId = file.id;
 	elements.svgEditor.value = file.content;
+	resetRenderedOutput();
 	setActiveView("editor");
 	updateWorkspaceMeta(file);
 	persistFiles();
@@ -263,7 +321,20 @@ elements.newFileForm.addEventListener("submit", (event) => {
 	clearMessages();
 	setStatus(`Created ${file.name}.`);
 	closeDialog(elements.newFileDialog, { restoreFocus: false });
-	focusEditorLine(3);
+	focusActiveHeading(elements.currentFileHeading);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
+});
+
+[
+	document.getElementById("printButton"),
+	document.getElementById("saveButton"),
+	document.getElementById("downloadButton"),
+	elements.renameCurrentFileButton,
+	elements.deleteCurrentFileButton
+].forEach((button) => {
+	button.addEventListener("click", closeFileActionsMenu);
 });
 
 elements.shapeForm.addEventListener("submit", (event) => {
@@ -298,7 +369,10 @@ elements.exportForm.addEventListener("submit", async (event) => {
 	event.preventDefault();
 	try {
 		await exportRaster();
-		closeDialog(elements.exportDialog);
+		closeDialog(elements.exportDialog, { restoreFocus: false });
+		requestAnimationFrame(() => {
+			elements.fileActionsButton.focus();
+		});
 		setStatus("Raster export downloaded.");
 	} catch (error) {
 		setStatus(error.message);
@@ -333,6 +407,9 @@ document.getElementById("shortcutsForm").addEventListener("submit", (event) => {
 elements.svgEditor.addEventListener("input", () => {
 	clearStatus();
 	updateCurrentFileContent(elements.svgEditor.value);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
 });
 
 elements.svgEditor.addEventListener("keydown", (event) => {
@@ -349,6 +426,12 @@ elements.svgEditor.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+	if (event.key === "Escape" && !elements.fullscreenView.hidden) {
+		event.preventDefault();
+		closeFullscreenGraphic();
+		return;
+	}
+
 	if (matchesShortcut(event, state.shortcuts.jumpToLine)) {
 		event.preventDefault();
 		state.lastFocusedTrigger = document.activeElement;
@@ -363,12 +446,21 @@ document.addEventListener("keydown", (event) => {
 	}
 });
 
+window.addEventListener("afterprint", () => {
+	document.body.classList.remove("is-printing-svg");
+	document.body.removeAttribute("data-print-target");
+});
+
 initPrimitiveList();
+initPrimitiveSelect();
 initQuickAddList();
 updateShortcutModifierLabels();
 initBrailleConverter();
 renderFileList();
 setActiveView("home");
+syncAttributePromptToggles(elements.attributePromptToggle.checked);
+syncSettingsInputs();
+updateRenderButtonVisibility();
 
 function openShortcutsDialog() {
 	syncShortcutInputs();
@@ -385,20 +477,64 @@ function prepareNewFileDialog() {
 	elements.fileNameInput.setCustomValidity("");
 }
 
+function handleLiveViewChange() {
+	updateRenderButtonVisibility();
+	if (elements.liveViewToggle.checked) {
+		clearRenderErrors();
+		clearInlineRenderErrors();
+		scheduleLiveRender();
+		return;
+	}
+
+	window.clearTimeout(state.liveRenderTimeoutId);
+}
+
+function updateRenderButtonVisibility() {
+	document.getElementById("renderButton").hidden = elements.liveViewToggle.checked;
+}
+
+function handleRenderDelayChange() {
+	state.settings.renderDelay = Number(elements.renderDelayInput.value);
+	updateRenderDelayValue();
+	persistSettings();
+}
+
+function handleRenderSoundChange() {
+	state.settings.renderSound = elements.renderSoundToggle.checked;
+	persistSettings();
+}
+
+function scheduleLiveRender() {
+	window.clearTimeout(state.liveRenderTimeoutId);
+	state.liveRenderTimeoutId = window.setTimeout(() => {
+		renderSvg({ suppressErrors: true, announceSuccess: false, source: "live" });
+	}, state.settings.renderDelay * 1000);
+}
+
+function syncSettingsInputs() {
+	elements.renderDelayInput.value = String(state.settings.renderDelay);
+	updateRenderDelayValue();
+	elements.renderSoundToggle.checked = state.settings.renderSound;
+}
+
+function updateRenderDelayValue() {
+	elements.renderDelayInput.setAttribute("aria-valuetext", `${Number(state.settings.renderDelay).toFixed(1)} seconds`);
+}
+
 function initBrailleConverter() {
 	if (typeof LiblouisEasyApiAsync !== "function") {
 		setBrailleConverterReady(false);
-		setBrailleConverterStatus("Braille converter is unavailable right now.");
+		setBrailleConverterStatus("Braille converter is unavailable right now.", { persist: true });
 		return;
 	}
 
 	setBrailleConverterReady(false);
-	setBrailleConverterStatus("Loading braille converter.");
+	setBrailleConverterStatus("Loading braille converter.", { persist: true });
 	state.brailleApi = new LiblouisEasyApiAsync({
-		capi: getPathFromOrigin("scripts/vendor/liblouis/build-no-tables-utf16.js"),
-		easyapi: getPathFromOrigin("scripts/vendor/liblouis/easy-api.js")
+		capi: getPathFromOrigin("braille/build-no-tables-utf16.js"),
+		easyapi: getPathFromOrigin("braille/easy-api.js")
 	});
-	state.brailleApi.enableOnDemandTableLoading(getPathFromOrigin("scripts/vendor/liblouis/tables/"), () => {
+	state.brailleApi.enableOnDemandTableLoading(getPathFromOrigin("braille/tables/"), () => {
 		state.brailleConverterReady = true;
 		setBrailleConverterReady(true);
 		setBrailleConverterStatus("Braille converter ready. Enter text and press Convert to Braille Unicode.");
@@ -509,6 +645,48 @@ function initPrimitiveList() {
 	});
 
 	elements.primitiveList.appendChild(fragment);
+}
+
+function initPrimitiveSelect() {
+	const fragment = document.createDocumentFragment();
+
+	PRIMITIVES.forEach((primitive) => {
+		const option = document.createElement("option");
+		option.value = primitive.name;
+		option.textContent = `<${primitive.name}>`;
+		fragment.appendChild(option);
+	});
+
+	elements.primitiveSelect.appendChild(fragment);
+}
+
+function addSelectedPrimitiveFromPicker() {
+	const primitive = PRIMITIVES.find((item) => item.name === elements.primitiveSelect.value);
+	if (!primitive) {
+		setStatus("Choose an SVG element before adding it.");
+		return;
+	}
+
+	state.lastFocusedTrigger = elements.addSelectedPrimitiveButton;
+	if (elements.mobileAttributePromptToggle.checked) {
+		openShapeDialog(primitive);
+		return;
+	}
+
+	insertPrimitiveIntoEditor(primitive);
+}
+
+function syncAttributePromptToggles(isChecked) {
+	elements.attributePromptToggle.checked = isChecked;
+	elements.mobileAttributePromptToggle.checked = isChecked;
+}
+
+function syncAttributePromptTogglesFromDesktop() {
+	syncAttributePromptToggles(elements.attributePromptToggle.checked);
+}
+
+function syncAttributePromptTogglesFromMobile() {
+	syncAttributePromptToggles(elements.mobileAttributePromptToggle.checked);
 }
 
 function initQuickAddList() {
@@ -724,10 +902,14 @@ function focusEditorLine(lineNumber) {
 
 function updateWorkspaceMeta(file) {
 	elements.currentFileHeading.textContent = file.name;
-	elements.renderViewHeading.textContent = `${file.name} Print View`;
 	elements.fileMeta.textContent = `Updated ${formatDate(file.updatedAt)}`;
 	elements.renameCurrentFileButton.textContent = `Rename ${file.name}`;
 	elements.deleteCurrentFileButton.textContent = `Delete ${file.name}`;
+	if (elements.renderMeta) {
+		elements.renderMeta.textContent = state.lastRenderedMarkup
+			? `${file.name} rendered and ready for print or export.`
+			: "Rendered output will appear here.";
+	}
 	updateDocumentTitle();
 }
 
@@ -808,10 +990,14 @@ function openFile(fileId) {
 	state.currentFileId = file.id;
 	setActiveView("editor");
 	elements.svgEditor.value = file.content;
+	resetRenderedOutput();
 	updateWorkspaceMeta(file);
 	clearMessages();
 	setStatus(`Opened ${file.name}.`);
 	focusActiveHeading(elements.currentFileHeading);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
 }
 
 function renameFile(fileId) {
@@ -855,9 +1041,8 @@ function deleteFile(fileId) {
 		elements.fileMeta.textContent = "No file open.";
 		elements.renameCurrentFileButton.textContent = "Rename File";
 		elements.deleteCurrentFileButton.textContent = "Delete File";
-		elements.renderViewHeading.textContent = "Rendered SVG";
 		elements.svgEditor.value = "";
-		elements.renderCanvas.replaceChildren(elements.renderCanvasHeading);
+		resetRenderedOutput();
 		setActiveView("home");
 		focusActiveHeading(elements.homeHeading);
 	}
@@ -927,70 +1112,86 @@ function updateCurrentFileContent(content) {
 	updateWorkspaceMeta(file);
 }
 
-function renderSvg() {
-	const source = elements.svgEditor.value.trim();
-	if (!source) {
+function renderSvg(options = {}) {
+	const {
+		suppressErrors = false,
+		announceSuccess = true,
+		source: renderSource = "manual"
+	} = options;
+	const svgSource = elements.svgEditor.value.trim();
+	if (!svgSource) {
 		setStatus("Enter SVG code before rendering.");
 		return;
 	}
 
 	const parser = new DOMParser();
-	const doc = parser.parseFromString(source, "image/svg+xml");
+	const doc = parser.parseFromString(svgSource, "image/svg+xml");
 	const parserErrors = extractParserErrorsFromDocument(doc);
 	if (parserErrors.length) {
-		presentRenderErrors(parserErrors);
-		return;
+		return handleRenderFailure(parserErrors, suppressErrors);
 	}
 
 	const parserErrorNode = findParserErrorNode(doc);
 	if (parserErrorNode) {
-		clearRenderErrors();
-		setActiveView("editor");
-		setStatus("The SVG could not be rendered.");
-		elements.svgEditor.focus();
-		return;
+		return handleRenderFailure([], suppressErrors);
 	}
 
 	const svg = doc.documentElement;
 	if (!svg || svg.nodeName.toLowerCase() !== "svg") {
-		presentRenderErrors([
+		return handleRenderFailure([
 			{
 				line: 1,
 				column: 1,
 				rawMessage: "The document must begin with a valid <svg> root element.",
 				plainLanguage: "Make sure the file starts with an opening <svg> tag and that it is written correctly."
 			}
-		]);
-		return;
+		], suppressErrors);
 	}
 
 	sanitizeSvg(svg);
 	prepareRenderedSvg(svg);
 	clearRenderErrors();
-	elements.renderCanvas.replaceChildren(elements.renderCanvasHeading, svg.cloneNode(true));
-	setActiveView("render");
-	elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
-	focusActiveHeading(elements.renderViewHeading);
-	setStatus("SVG rendered.");
-}
-
-function returnToEditor() {
-	setActiveView("editor");
-	focusActiveHeading(elements.currentFileHeading);
+	clearInlineRenderErrors();
+	updateRenderedOutput(svg);
+	playRenderSound();
+	if (announceSuccess && renderSource !== "live") {
+		setStatus("SVG rendered.");
+		if (renderSource === "manual") {
+			announceEditorChange(`${elements.currentFileHeading.textContent} rendered in viewer`);
+		}
+	}
+	return true;
 }
 
 function returnHome() {
+	closeFullscreenGraphic({ restoreFocus: false });
 	setActiveView("home");
 	clearStatus();
 	focusActiveHeading(elements.homeHeading);
 }
 
 function setActiveView(viewName) {
-	syncRegion(elements.homeView, viewName === "home");
-	syncRegion(elements.workspaceSection, viewName === "editor" || viewName === "render");
-	syncRegion(elements.editorView, viewName === "editor");
-	syncRegion(elements.renderView, viewName === "render");
+	const showFullscreen = viewName === "fullscreen";
+	moveFileActionsToHost(showFullscreen ? elements.fullscreenFileActionsHost : elements.editorFileActionsHost);
+	document.body.classList.toggle("is-fullscreen-graphic", showFullscreen);
+	syncRegion(elements.skipLink, !showFullscreen);
+	syncRegion(elements.siteHeader, !showFullscreen);
+	syncRegion(elements.mainContent, !showFullscreen);
+	syncRegion(elements.siteFooter, !showFullscreen);
+	syncRegion(elements.homeView, !showFullscreen && viewName === "home");
+	syncRegion(elements.workspaceSection, !showFullscreen && viewName === "editor");
+	syncRegion(elements.editorView, !showFullscreen && viewName === "editor");
+	syncRegion(elements.fullscreenView, showFullscreen);
 	updateDocumentTitle({ view: viewName });
+}
+
+function moveFileActionsToHost(host) {
+	if (!host || !elements.fileActionsPopdown) {
+		return;
+	}
+
+	closeFileActionsMenu();
+	host.appendChild(elements.fileActionsPopdown);
 }
 
 function syncRegion(element, isActive) {
@@ -1015,10 +1216,288 @@ function downloadSvg() {
 	setStatus("SVG download started.");
 }
 
+function handleRenderFailure(errors, suppressErrors) {
+	if (suppressErrors) {
+		presentInlineRenderErrors(errors);
+		return false;
+	}
+
+	if (errors.length) {
+		presentRenderErrors(errors);
+		return false;
+	}
+
+	clearRenderErrors();
+	setStatus("The SVG could not be rendered.");
+	elements.svgEditor.focus();
+	return false;
+}
+
+function updateRenderedOutput(svg) {
+	const previewSvg = svg.cloneNode(true);
+	const fullscreenSvg = svg.cloneNode(true);
+	state.lastRenderedMarkup = previewSvg.outerHTML;
+	if (elements.renderMeta) {
+		elements.renderMeta.textContent = `${elements.currentFileHeading.textContent} rendered and ready for print or export.`;
+	}
+	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, previewSvg);
+	elements.fullscreenRenderCanvas.replaceChildren(fullscreenSvg);
+}
+
+function resetRenderedOutput() {
+	state.lastRenderedMarkup = "";
+	if (elements.renderMeta) {
+		elements.renderMeta.textContent = "Rendered output will appear here.";
+	}
+	clearInlineRenderErrors();
+	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
+	elements.fullscreenRenderCanvas.replaceChildren(elements.fullscreenRenderPlaceholder);
+}
+
+function presentInlineRenderErrors(errors) {
+	clearRenderErrors();
+	elements.renderPreviewCanvas.replaceChildren(elements.renderPreviewCanvasHeading, elements.renderPreviewPlaceholder);
+	elements.renderPreviewErrorList.replaceChildren();
+
+	const fragment = document.createDocumentFragment();
+	const errorItems = errors.length ? errors : [
+		{
+			line: 1,
+			column: 1,
+			rawMessage: "The browser found an SVG parsing error."
+		}
+	];
+
+	errorItems.forEach((error) => {
+		const item = document.createElement("li");
+		item.textContent = formatErrorItem(error);
+		fragment.appendChild(item);
+	});
+
+	elements.renderPreviewErrorList.appendChild(fragment);
+	elements.renderPreviewErrorPanel.hidden = false;
+}
+
+function clearInlineRenderErrors() {
+	elements.renderPreviewErrorList.replaceChildren();
+	elements.renderPreviewErrorPanel.hidden = true;
+}
+
+function closeFileActionsMenu() {
+	if (!isFileActionsMenuOpen()) {
+		return;
+	}
+
+	elements.fileActionsMenu.hidden = true;
+	elements.fileActionsMenu.setAttribute("inert", "");
+	elements.fileActionsButton.setAttribute("aria-expanded", "false");
+}
+
+function openFileActionsMenu(focusMode = "first") {
+	if (!isFileActionsMenuOpen()) {
+		elements.fileActionsMenu.hidden = false;
+		elements.fileActionsMenu.removeAttribute("inert");
+		elements.fileActionsButton.setAttribute("aria-expanded", "true");
+	}
+
+	const items = getFileActionsMenuItems();
+	if (!items.length) {
+		return;
+	}
+
+	const target = focusMode === "last" ? items[items.length - 1] : items[0];
+	requestAnimationFrame(() => {
+		target.focus();
+	});
+}
+
+function toggleFileActionsMenu() {
+	if (isFileActionsMenuOpen()) {
+		closeFileActionsMenu();
+		return;
+	}
+
+	openFileActionsMenu("first");
+}
+
+function getFileActionsMenuItems() {
+	return [...elements.fileActionsMenu.querySelectorAll("button")];
+}
+
+function isFileActionsMenuOpen() {
+	return !elements.fileActionsMenu.hidden;
+}
+
+function handleFileActionsButtonClick() {
+	toggleFileActionsMenu();
+}
+
+function handleFileActionsButtonKeydown(event) {
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault();
+		toggleFileActionsMenu();
+		return;
+	}
+
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		openFileActionsMenu("first");
+		return;
+	}
+
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		openFileActionsMenu("last");
+	}
+}
+
+function handleFileActionsMenuKeydown(event) {
+	const items = getFileActionsMenuItems();
+	const currentIndex = items.indexOf(document.activeElement);
+	if (!items.length) {
+		return;
+	}
+
+	if (event.key === "Escape") {
+		event.preventDefault();
+		closeFileActionsMenu();
+		elements.fileActionsButton.focus();
+		return;
+	}
+
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		items[(currentIndex + 1 + items.length) % items.length].focus();
+		return;
+	}
+
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		items[(currentIndex - 1 + items.length) % items.length].focus();
+		return;
+	}
+
+	if (event.key === "Home") {
+		event.preventDefault();
+		items[0].focus();
+		return;
+	}
+
+	if (event.key === "End") {
+		event.preventDefault();
+		items[items.length - 1].focus();
+	}
+}
+
+function handleDocumentPointerDown(event) {
+	if (!isFileActionsMenuOpen()) {
+		return;
+	}
+
+	if (elements.fileActionsPopdown && elements.fileActionsPopdown.contains(event.target)) {
+		return;
+	}
+
+	closeFileActionsMenu();
+}
+
+function playRenderSound() {
+	if (!state.settings.renderSound) {
+		return;
+	}
+
+	const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+	if (!AudioContextConstructor) {
+		return;
+	}
+
+	if (!state.audioContext) {
+		state.audioContext = new AudioContextConstructor();
+	}
+
+	const context = state.audioContext;
+	if (context.state === "suspended") {
+		context.resume().catch(() => {});
+	}
+
+	const now = context.currentTime;
+	const masterGain = context.createGain();
+	const filter = context.createBiquadFilter();
+	const chordFrequencies = [261.63, 329.63, 392];
+	const duration = 0.9;
+
+	filter.type = "lowpass";
+	filter.frequency.setValueAtTime(1400, now);
+	filter.Q.setValueAtTime(0.6, now);
+	masterGain.gain.setValueAtTime(0.0001, now);
+	masterGain.gain.linearRampToValueAtTime(0.028, now + 0.18);
+	masterGain.gain.linearRampToValueAtTime(0.018, now + 0.45);
+	masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+	filter.connect(masterGain);
+	masterGain.connect(context.destination);
+
+	chordFrequencies.forEach((frequency, index) => {
+		const oscillator = context.createOscillator();
+		const voiceGain = context.createGain();
+		oscillator.type = index === 0 ? "triangle" : "sine";
+		oscillator.frequency.setValueAtTime(frequency, now);
+		voiceGain.gain.setValueAtTime(index === 0 ? 0.9 : 0.6, now);
+		oscillator.connect(voiceGain);
+		voiceGain.connect(filter);
+		oscillator.start(now);
+		oscillator.stop(now + duration);
+	});
+}
+
+function openFullscreenGraphic() {
+	const rendered = renderSvg({ suppressErrors: true, announceSuccess: false, source: "fullscreen" });
+	if (!rendered && !state.lastRenderedMarkup) {
+		return;
+	}
+
+	state.lastFocusedTrigger = elements.openFullscreenButton;
+	setActiveView("fullscreen");
+	focusActiveHeading(elements.fullscreenGraphicHeading);
+}
+
+function closeFullscreenGraphic(options = {}) {
+	if (elements.fullscreenView.hidden) {
+		return;
+	}
+
+	setActiveView("editor");
+	if (options.restoreFocus === false) {
+		return;
+	}
+	requestAnimationFrame(() => {
+		if (state.lastFocusedTrigger && typeof state.lastFocusedTrigger.focus === "function") {
+			state.lastFocusedTrigger.focus();
+			return;
+		}
+		elements.openFullscreenButton.focus();
+	});
+}
+
+function printRenderedSvg() {
+	const rendered = renderSvg({ suppressErrors: false, announceSuccess: false, source: "print" });
+	if (!rendered) {
+		return;
+	}
+
+	state.printTarget = elements.fullscreenView.hidden ? "preview" : "fullscreen";
+	document.body.setAttribute("data-print-target", state.printTarget);
+	document.body.classList.add("is-printing-svg");
+	window.print();
+}
+
 async function exportRaster() {
 	const source = elements.svgEditor.value.trim();
 	if (!source) {
 		throw new Error("There is no SVG code to export.");
+	}
+
+	if (!validateExportForm()) {
+		throw new Error("Please correct the export settings and try again.");
 	}
 
 	const width = Number(elements.exportWidthInput.value);
@@ -1070,10 +1549,14 @@ function syncExportDimensionsFromSvg() {
 	state.exportBaseHeightPx = height;
 	state.exportSyncSource = "";
 	elements.exportUnitsInput.value = "px";
+	elements.exportTypeInput.value = "image/png";
 	elements.scaleProportionatelyInput.checked = true;
 	setExportInputStep("px");
 	elements.exportWidthInput.value = width;
 	elements.exportHeightInput.value = height;
+	state.exportSyncSource = "px";
+	updateExportLabels();
+	validateExportInputs();
 }
 
 function numericAttribute(value) {
@@ -1086,21 +1569,25 @@ function numericAttribute(value) {
 }
 
 function syncExportUnits() {
+	const nextUnits = elements.exportUnitsInput.value;
 	const width = Number(elements.exportWidthInput.value);
 	const height = Number(elements.exportHeightInput.value);
 	const dpi = Number(elements.exportDpiInput.value) || 96;
 	const currentUnits = state.exportSyncSource || "px";
 	const pixelSize = convertExportDimensionsToPixels(width, height, currentUnits, dpi);
-	const convertedSize = convertPixelsToExportDimensions(pixelSize.width, pixelSize.height, elements.exportUnitsInput.value, dpi);
-	setExportInputStep(elements.exportUnitsInput.value);
+	const convertedSize = convertPixelsToExportDimensions(pixelSize.width, pixelSize.height, nextUnits, dpi);
+	setExportInputStep(nextUnits);
 	elements.exportWidthInput.value = formatExportNumber(convertedSize.width);
 	elements.exportHeightInput.value = formatExportNumber(convertedSize.height);
-	state.exportSyncSource = elements.exportUnitsInput.value;
+	state.exportSyncSource = nextUnits;
+	updateExportLabels();
+	validateExportInputs();
 }
 
 function syncExportDimensionPair(changedDimension) {
 	if (!elements.scaleProportionatelyInput.checked) {
 		state.exportSyncSource = elements.exportUnitsInput.value;
+		validateExportInputs();
 		return;
 	}
 
@@ -1117,6 +1604,7 @@ function syncExportDimensionPair(changedDimension) {
 	}
 
 	state.exportSyncSource = elements.exportUnitsInput.value;
+	validateExportInputs();
 }
 
 function convertExportDimensionsToPixels(width, height, units, dpi) {
@@ -1160,8 +1648,8 @@ function convertPixelsToExportDimensions(width, height, units, dpi) {
 }
 
 function setExportInputStep(units) {
-	const step = units === "px" ? "1" : units === "percent" ? "1" : "0.01";
-	const min = units === "percent" ? "1" : "0.01";
+	const step = "0.01";
+	const min = "0.01";
 	elements.exportWidthInput.step = step;
 	elements.exportHeightInput.step = step;
 	elements.exportWidthInput.min = min;
@@ -1179,6 +1667,108 @@ function formatExportNumber(value) {
 
 	return String(Number(value.toFixed(2)));
 }
+
+function validateExportInputs() {
+	validateExportDimensionInput(elements.exportWidthInput, "width");
+	validateExportDimensionInput(elements.exportHeightInput, "height");
+	validateExportDpiInput();
+}
+
+function validateExportForm() {
+	const widthValid = validateExportDimensionInput(elements.exportWidthInput, "width");
+	const heightValid = validateExportDimensionInput(elements.exportHeightInput, "height");
+	const dpiValid = validateExportDpiInput();
+	const firstInvalid = [elements.exportWidthInput, elements.exportHeightInput, elements.exportDpiInput].find((input) => !input.checkValidity());
+
+	if (firstInvalid) {
+		firstInvalid.reportValidity();
+		firstInvalid.focus();
+	}
+
+	return widthValid && heightValid && dpiValid;
+}
+
+function updateExportLabels() {
+	const unitText = describeExportUnitLabel(elements.exportUnitsInput.value);
+	elements.exportWidthLabel.textContent = `Width in ${unitText}`;
+	elements.exportHeightLabel.textContent = `Height in ${unitText}`;
+}
+
+function validateExportDimensionInput(input, dimensionName) {
+	input.setCustomValidity("");
+
+	if (!input.value.trim()) {
+		input.setCustomValidity(`Please provide an output ${dimensionName}.`);
+		return false;
+	}
+
+	const value = Number(input.value);
+	if (!Number.isFinite(value)) {
+		input.setCustomValidity(`Please provide a valid output ${dimensionName}.`);
+		return false;
+	}
+
+	if (value <= 0) {
+		input.setCustomValidity(`Output ${dimensionName} must be greater than 0 ${describeExportUnit(elements.exportUnitsInput.value, value)}.`);
+		return false;
+	}
+
+	return true;
+}
+
+function validateExportDpiInput() {
+	elements.exportDpiInput.setCustomValidity("");
+
+	if (!elements.exportDpiInput.value.trim()) {
+		elements.exportDpiInput.setCustomValidity("Please provide a DPI value.");
+		return false;
+	}
+
+	const dpi = Number(elements.exportDpiInput.value);
+	if (!Number.isFinite(dpi) || dpi <= 0) {
+		elements.exportDpiInput.setCustomValidity("DPI must be greater than 0.");
+		return false;
+	}
+
+	return true;
+}
+
+function describeExportUnit(units, value) {
+	const singular = Math.abs(value - 1) < 0.001;
+
+	switch (units) {
+		case "in":
+			return singular ? "inch" : "inches";
+		case "cm":
+			return singular ? "centimeter" : "centimeters";
+		case "mm":
+			return singular ? "millimeter" : "millimeters";
+		case "pt":
+			return singular ? "point" : "points";
+		case "percent":
+			return singular ? "percent" : "percent";
+		default:
+			return singular ? "pixel" : "pixels";
+	}
+}
+
+function describeExportUnitLabel(units) {
+	switch (units) {
+		case "in":
+			return "Inches";
+		case "cm":
+			return "Centimeters";
+		case "mm":
+			return "Millimeters";
+		case "pt":
+			return "Points";
+		case "percent":
+			return "Percent";
+		default:
+			return "Pixels";
+	}
+}
+
 
 function loadSvgImage(source) {
 	return new Promise((resolve, reject) => {
@@ -1371,6 +1961,33 @@ function loadShortcuts() {
 	}
 }
 
+function loadSettings() {
+	try {
+		const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+		return {
+			renderDelay: normalizeRenderDelay(savedSettings.renderDelay),
+			renderSound: Boolean(savedSettings.renderSound)
+		};
+	} catch (error) {
+		return {
+			renderDelay: 1.5,
+			renderSound: false
+		};
+	}
+}
+
+function persistSettings() {
+	localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+}
+
+function normalizeRenderDelay(value) {
+	const numericValue = Number(value);
+	if (!Number.isFinite(numericValue)) {
+		return 1.5;
+	}
+	return Math.min(5, Math.max(0.1, Number(numericValue.toFixed(1))));
+}
+
 function describeShortcut(shortcut) {
 	const modifierLabel = shortcut.modifiers
 		.split("+")
@@ -1416,8 +2033,8 @@ function updateDocumentTitle(stateOverride = {}) {
 		return;
 	}
 
-	if (activeView === "render" && currentFile) {
-		document.title = `${filename} Print View - ${BASE_TITLE}`;
+	if (activeView === "fullscreen" && currentFile) {
+		document.title = `${filename} Full Screen View - ${BASE_TITLE}`;
 		return;
 	}
 
@@ -1430,8 +2047,8 @@ function updateDocumentTitle(stateOverride = {}) {
 }
 
 function getActiveView() {
-	if (!elements.renderView.hidden) {
-		return "render";
+	if (!elements.fullscreenView.hidden) {
+		return "fullscreen";
 	}
 
 	if (!elements.editorView.hidden) {
@@ -1448,7 +2065,9 @@ function getOpenDialogId() {
 		elements.jumpDialog,
 		elements.shortcutsDialog,
 		elements.exportDialog,
-		elements.errorDialog
+		elements.errorDialog,
+		elements.deleteDialog,
+		elements.quickAddDialog
 	];
 	const openDialog = dialogs.find((dialog) => dialog.open);
 	return openDialog ? openDialog.id : "";
@@ -1460,8 +2079,12 @@ function getCurrentFile() {
 
 function focusActiveHeading(heading) {
 	requestAnimationFrame(() => {
-		heading.setAttribute("tabindex", "-1");
-		heading.focus();
+		requestAnimationFrame(() => {
+			window.setTimeout(() => {
+				heading.setAttribute("tabindex", "-1");
+				heading.focus();
+			}, 30);
+		});
 	});
 }
 
@@ -1532,10 +2155,17 @@ function outdentSelection() {
 }
 
 function announceEditorChange(message) {
+	window.clearTimeout(state.editorAnnouncementTimeoutId);
 	elements.editorAnnouncer.textContent = "";
-	requestAnimationFrame(() => {
-		elements.editorAnnouncer.textContent = message;
-	});
+	window.setTimeout(() => {
+		elements.editorAnnouncer.textContent = "";
+		window.setTimeout(() => {
+			elements.editorAnnouncer.textContent = message;
+			state.editorAnnouncementTimeoutId = window.setTimeout(() => {
+				elements.editorAnnouncer.textContent = "";
+			}, MESSAGE_TIMEOUT_MS);
+		}, 40);
+	}, 10);
 }
 
 function matchesShortcut(event, shortcut) {
@@ -1555,33 +2185,72 @@ function matchesShortcut(event, shortcut) {
 		&& event.metaKey === needsMeta;
 }
 
-function setStatus(message) {
-	elements.statusMessage.textContent = message;
+function setStatus(message, options = {}) {
+	setTimedMessage(elements.statusMessage, message, options);
 }
 
 function clearStatus() {
-	elements.statusMessage.textContent = "";
+	clearTimedMessage(elements.statusMessage);
 }
 
 function showToast(message) {
 	window.clearTimeout(state.toastTimeoutId);
+	window.clearTimeout(state.toastFadeTimeoutId);
 	elements.toast.textContent = message;
 	elements.toast.hidden = false;
+	elements.toast.classList.remove("is-fading");
 	requestAnimationFrame(() => {
 		elements.toast.classList.add("is-visible");
 	});
 
 	state.toastTimeoutId = window.setTimeout(() => {
 		elements.toast.classList.remove("is-visible");
-		window.setTimeout(() => {
+		elements.toast.classList.add("is-fading");
+		state.toastFadeTimeoutId = window.setTimeout(() => {
 			elements.toast.hidden = true;
 			elements.toast.textContent = "";
-		}, 200);
-	}, 6000);
+			elements.toast.classList.remove("is-fading");
+		}, MESSAGE_FADE_MS);
+	}, MESSAGE_TIMEOUT_MS);
 }
 
-function setBrailleConverterStatus(message) {
-	elements.brailleConverterStatus.textContent = message;
+function setBrailleConverterStatus(message, options = {}) {
+	setTimedMessage(elements.brailleConverterStatus, message, options);
+}
+
+function clearTimedMessage(element) {
+	window.clearTimeout(messageTimeouts.get(element) || 0);
+	window.clearTimeout(messageFadeTimeouts.get(element) || 0);
+	messageTimeouts.delete(element);
+	messageFadeTimeouts.delete(element);
+	element.classList.remove("is-visible", "is-fading");
+	element.textContent = "";
+}
+
+function setTimedMessage(element, message, options = {}) {
+	const persist = Boolean(options.persist);
+	clearTimedMessage(element);
+
+	if (!message) {
+		return;
+	}
+
+	element.textContent = message;
+	requestAnimationFrame(() => {
+		element.classList.add("is-visible");
+	});
+
+	if (persist) {
+		return;
+	}
+
+	messageTimeouts.set(element, window.setTimeout(() => {
+		element.classList.remove("is-visible");
+		element.classList.add("is-fading");
+		messageFadeTimeouts.set(element, window.setTimeout(() => {
+			clearTimedMessage(element);
+		}, MESSAGE_FADE_MS));
+	}, MESSAGE_TIMEOUT_MS));
 }
 
 function updateBrailleConversion() {

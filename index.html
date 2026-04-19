@@ -47,8 +47,20 @@
 <main id="mainContent">
 <section class="intro" id="homeView">
 <h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
+<details id="updatesDetails">
+<summary>Apr 18 Updates</summary>
+<ul>
+<li>Live View now updates the graphic directly in the editor, with manual rendering still available when needed.</li>
+<li>The render view can be collapsed, opened full screen, printed cleanly, or exported without leaving your work in the Code Editor.</li>
+<li>File actions are grouped into one easier menu, and raster export offers more sizing and unit options.</li>
+<li>The braille converter now supports more English braille choices and works directly inside the editor experience.</li>
+<li>Mobile editing and SVG element insertion have been tightened up to keep the code editor as the main focus.</li>
+</ul>
+</details>
+
+
 <p>shapeCrafter gives you a place to create hand-coded SVG graphics, render them instantly in the browser, and move directly to print or export.</p>
-<p>Start a new SVG file, write or insert SVG elements, switch to the rendered graphic when you are ready, and print or emboss your creation.</p>
+<p>Start a new SVG file, write or insert SVG elements, preview the rendered graphic while you work, and print or emboss your creation when it is ready.</p>
 <div class="action-row">
 <button type="button" id="newFileButton" aria-haspopup="dialog">New File</button>
 <button type="button" id="openShortcutsButton" aria-haspopup="dialog">Keyboard Shortcuts</button>
@@ -58,9 +70,9 @@
 <summary>Help and Getting Started</summary>
 <div class="details-body">
 <p>Create a file to generate the opening SVG code, including your filename in the title tag. The code editor accepts direct typing, or you can insert SVG primitives from the menu. You can also use the Quick Add keyboard shortcut to bring up a menu of shapes to add into your code when focused in the editor.</p>
-<p>Use Render SVG to switch to the output view. If the parser finds a problem, shapeCrafter will keep you in the editor and show the error message. The Jump to Line button can move the cursor to a specific line in the code.</p>
+<p>Use Live View for automatic rendering while you type, or keep Live View off and use Render SVG when you want to update the graphic manually. The Jump to Line button can move the cursor to a specific line in the code.</p>
 <p>Saved files stay in this browser until you delete them. Download SVG creates a file on your computer, while Export Raster converts the current SVG into a bitmap image.</p>
-<p>For embossing or tactile print workflows, choose Print/Emboss Image from the render view so the browser prints only the rendered SVG.</p>
+<p>For embossing or tactile print workflows, choose Print/Emboss Graphic from the file actions menu so the browser prints only the rendered SVG.</p>
 </div>
 </details>
 
@@ -89,7 +101,28 @@
 <div>
 <h1 id="currentFileHeading">Untitled</h1>
 <p id="fileMeta">No file open.</p>
-<button type="button" id="renameCurrentFileButton">Rename File</button>
+<details id="editorSettingsDetails">
+<summary>Editor Settings</summary>
+<div class="details-body">
+<div class="toggle-row">
+<input type="checkbox" id="liveViewToggle">
+<label for="liveViewToggle">Live View</label>
+</div>
+<p id="liveViewHelp">Live View updates the rendered graphic automatically a moment after you stop typing.</p>
+<div class="slider-row">
+<label for="renderDelayInput">Render Delay</label>
+<input type="range" id="renderDelayInput" min="0.1" max="5.0" step="0.1" value="1.5" aria-valuetext="1.5 seconds">
+</div>
+<p id="renderDelayHelp">Adjust how long shapeCrafter waits before Live View updates the rendered graphic.</p>
+<div class="toggle-row">
+<input type="checkbox" id="renderSoundToggle">
+<label for="renderSoundToggle">Render Sound</label>
+</div>
+<p id="renderSoundHelp">Play a subtle sound when the rendered graphic updates.</p>
+</div>
+</details>
+</div>
+<div class="workspace-header__actions">
 <button type="button" id="backToHomeFromEditorButton">Back to Home</button>
 </div>
 </div>
@@ -110,26 +143,75 @@
 
 <section class="editor-panel" aria-labelledby="svgEditorHeading">
 <h2 id="svgEditorHeading">SVG Editor</h2>
+<div class="editor-mobile-tools">
+<div class="editor-mobile-tools__picker">
+<label for="primitiveSelect">SVG Element</label>
+<div class="editor-mobile-tools__picker-controls">
+<select id="primitiveSelect">
+<option value="">Choose SVG Element</option>
+</select>
+<button type="button" id="addSelectedPrimitiveButton">Add SVG Element</button>
+</div>
+</div>
+<div class="toggle-row editor-mobile-tools__toggle">
+<input type="checkbox" id="mobileAttributePromptToggle">
+<label for="mobileAttributePromptToggle">Prompt for attributes</label>
+</div>
+</div>
 <section id="errorPanel" aria-labelledby="svgErrorHeading" hidden>
 <h3 id="svgErrorHeading">Errors in SVG Code</h3>
 <ul id="errorList"></ul>
 </section>
-<label for="svgEditor">SVG Code</label>
+<label for="svgEditor">SVG Code Editor</label>
 <textarea id="svgEditor" spellcheck="false" autocapitalize="off" autocomplete="off" rows="24"></textarea>
 <div class="action-row">
-<button type="button" id="renderButton">Render SVG</button>
 <button type="button" id="jumpToLineButton" aria-haspopup="dialog">Jump to Line</button>
-<button type="button" id="saveButton">Save to Browser</button>
-<button type="button" id="downloadButton">Download SVG</button>
-<button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button>
 </div>
 <p id="statusMessage" class="status-message"></p>
 </section>
 </div>
 
-<section class="reference-panel" aria-labelledby="svgCodeReferenceHeading">
-<h2 id="svgCodeReferenceHeading">SVG Code Reference</h2>
+<div id="editorFileActionsHost">
+<div class="file-actions-popdown">
+<button type="button" id="fileActionsButton" aria-expanded="false" aria-controls="fileActionsMenu">File Actions</button>
+<div id="fileActionsMenu" class="file-actions-menu" hidden inert>
+<ul id="fileActionsList" role="list">
+<li><button type="button" id="printButton">Print/Emboss Graphic</button></li>
+<li><button type="button" id="saveButton">Save to Browser</button></li>
+<li><button type="button" id="downloadButton">Download SVG</button></li>
+<li><button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button></li>
+<li><button type="button" id="renameCurrentFileButton">Rename File</button></li>
+<li><button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button></li>
+</ul>
+</div>
+</div>
+</div>
+
+<section class="render-panel" aria-labelledby="renderPreviewHeading">
+<div class="render-panel__controls">
+<button type="button" id="renderButton">Render SVG</button>
+<button type="button" id="openFullscreenButton">View Graphic in Full Screen</button>
+</div>
+<details id="renderPreviewDetails" open>
+<summary>Render View</summary>
+<div class="render-panel__body">
+<section id="renderPreviewErrorPanel" aria-labelledby="renderPreviewErrorHeading" hidden>
+<h2 id="renderPreviewErrorHeading">Render Errors</h2>
+<ul id="renderPreviewErrorList"></ul>
+</section>
+<section id="renderPreviewCanvas" tabindex="0" aria-labelledby="renderPreviewCanvasHeading">
+<h3 id="renderPreviewCanvasHeading" class="render-panel__subheading">Render View</h3>
+<p id="renderPreviewPlaceholder">Render the SVG to preview it here.</p>
+</section>
+</div>
+</details>
+</section>
+
+<div class="reference-panel">
+<details id="svgCodeReferenceDetails">
+<summary>SVG Code Reference</summary>
 <div class="reference-content">
+<h2 id="svgCodeReferenceHeading">SVG Code Reference</h2>
 <p>Expand the sections below for quick reminders while you code.</p>
 
 <details>
@@ -265,6 +347,15 @@
 <li>class - Reusable styling hook for CSS classes.</li>
 <li>id - Unique styling or reference hook for one specific element.</li>
 </ul>
+<h4>Color</h4>
+<ul>
+<li>Hex colors - Use values like #000000 for black, #ffffff for white, or #fdf5e6 for oldLace.</li>
+<li>RGB colors - Use values like rgb(0 0 0) for black or rgb(253 245 230) for oldLace.</li>
+<li>HSL colors - Use values like hsl(0 0% 0%) for black or hsl(39 85% 95%) for oldLace.</li>
+<li>Stroke color - Add a color value with stroke, such as stroke="#000000" or stroke="rgb(0 0 0)".</li>
+<li>Fill color - Add a color value with fill, such as fill="#fdf5e6" or fill="hsl(39 85% 95%)".</li>
+<li>Color keywords - You can also use named colors. See the <a href="https://www.w3.org/wiki/CSS3/Color/Extended_color_keywords">CSS Extended Color Keyword list</a>.</li>
+</ul>
 </details>
 
 <details>
@@ -318,9 +409,13 @@
 </ul>
 </details>
 </div>
-</section>
+</details>
+</div>
 
-<section class="reference-panel braille-converter-section" aria-labelledby="brailleConverterHeading">
+<div class="reference-panel braille-converter-section">
+<details id="brailleConverterDetails">
+<summary>Braille Converter</summary>
+<div class="reference-content">
 <h2 id="brailleConverterHeading">Braille Converter</h2>
 <p>Enter text, choose a UEB output grade, convert it to braille Unicode, and copy the result into your SVG text code.</p>
 
@@ -351,35 +446,29 @@
 </div>
 
 <p id="brailleConverterStatus" class="status-message" role="status"></p>
-</section>
 </div>
+</details>
+</div>
+</section>
 
-<div id="renderView" hidden inert>
-<div class="workspace-header">
-<div>
-<h1 id="renderViewHeading">Rendered SVG</h1>
-<p id="renderMeta">Rendered output ready for print or export.</p>
-</div>
-<section aria-label="SVG Actions">
-<div class="action-row non-printing">
-<button type="button" id="returnToCodeButton">Return to Code</button>
-<button type="button" id="printButton">Print/Emboss Graphic</button>
-<button type="button" id="saveFromRenderButton">Save SVG</button>
-<button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button>
-<button type="button" id="backToHomeFromRenderButton">Back to Home</button>
-</div>
-</section>
-</div>
-<section id="renderCanvas" tabindex="0" aria-labelledby="renderCanvasHeading">
-<h2 id="renderCanvasHeading" class="non-printing">Rendered Image</h2>
-</section>
-</div>
-</section>
 </main>
 
 <footer class="site-footer">
-<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.2.1</p>
+<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.3.1</p>
 </footer>
+
+<main id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">
+<div class="fullscreen-toolbar non-printing">
+<h1 id="fullscreenGraphicHeading" class="non-printing" tabindex="-1">Full Screen Graphic</h1>
+<div class="fullscreen-toolbar__actions">
+<div id="fullscreenFileActionsHost"></div>
+<button type="button" id="closeFullscreenButton" class="non-printing">Close Graphic</button>
+</div>
+</div>
+<div id="fullscreenRenderCanvas">
+<p id="fullscreenRenderPlaceholder">Render the SVG to preview it full screen.</p>
+</div>
+</main>
 
 <dialog id="newFileDialog">
 <form method="dialog" id="newFileForm">
@@ -512,7 +601,7 @@
 <form method="dialog" id="quickAddForm">
 <h2 id="quickAddDialogHeading" tabindex="-1">Quick Add SVG Element</h2>
 <p>Choose an SVG element to insert at the current cursor position.</p>
-<ul id="quickAddList" class="quick-add-list"></ul>
+<div id="quickAddList" class="quick-add-list"></div>
 <div class="dialog-actions">
 <button type="button" data-close-dialog="quickAddDialog">Cancel</button>
 </div>
@@ -546,11 +635,11 @@
 <label for="scaleProportionatelyInput">Scale Proportionately</label>
 </div>
 
-<label for="exportWidthInput">Output Width</label>
-<input id="exportWidthInput" name="width" type="number" min="1" value="1000" step="1" required>
+<label for="exportWidthInput" id="exportWidthLabel">Width in Pixels</label>
+<input id="exportWidthInput" name="width" type="number" min="0.01" value="1000" step="0.01" inputmode="decimal" required>
 
-<label for="exportHeightInput">Output Height</label>
-<input id="exportHeightInput" name="height" type="number" min="1" value="1000" step="1" required>
+<label for="exportHeightInput" id="exportHeightLabel">Height in Pixels</label>
+<input id="exportHeightInput" name="height" type="number" min="0.01" value="1000" step="0.01" inputmode="decimal" required>
 
 <label for="exportDpiInput">DPI</label>
 <input id="exportDpiInput" name="dpi" type="number" min="1" value="96" required>
@@ -588,7 +677,7 @@
 <div id="toast" class="toast" hidden aria-hidden="true"></div>
 <div id="editorAnnouncer" class="sr-only" role="status"></div>
 
-<script src="scripts/vendor/liblouis/easy-api.js"></script>
+<script src="braille/easy-api.js"></script>
 <script src="scripts/app.js"></script>
 </body>
 </html>
