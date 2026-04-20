@@ -48,13 +48,13 @@
 <section class="intro" id="homeView">
 <h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
 <details id="updatesDetails">
-<summary>Apr 18 Updates</summary>
+<summary>Apr 19 Updates</summary>
 <ul>
-<li>Live View now updates the graphic directly in the editor, with manual rendering still available when needed.</li>
-<li>The render view can be collapsed, opened full screen, printed cleanly, or exported without leaving your work in the Code Editor.</li>
-<li>File actions are grouped into one easier menu, and raster export offers more sizing and unit options.</li>
-<li>The braille converter now supports more English braille choices and works directly inside the editor experience.</li>
-<li>Mobile editing and SVG element insertion have been tightened up to keep the code editor as the main focus.</li>
+<li>You can now start from a gallery of ready-made SVG templates for charts, grids, braille, layout mockups, and simple drawings.</li>
+<li>The New File dialog now includes page size presets for common paper and canvas sizes, plus Custom sizing.</li>
+<li>Autosave, Save As, duplicate, and session-based revert tools make it easier to protect your work while you learn.</li>
+<li>Saved Files now use cleaner per-file action menus so larger file libraries stay easier to manage.</li>
+<li>The render view, export flow, braille tools, and mobile editing layout continue to work together in one editor screen.</li>
 </ul>
 </details>
 
@@ -63,6 +63,7 @@
 <p>Start a new SVG file, write or insert SVG elements, preview the rendered graphic while you work, and print or emboss your creation when it is ready.</p>
 <div class="action-row">
 <button type="button" id="newFileButton" aria-haspopup="dialog">New File</button>
+<button type="button" id="openTemplateButton" aria-haspopup="dialog">Start File from Template</button>
 <button type="button" id="openShortcutsButton" aria-haspopup="dialog">Keyboard Shortcuts</button>
 </div>
 
@@ -100,7 +101,9 @@
 <div class="workspace-header">
 <div>
 <h1 id="currentFileHeading">Untitled</h1>
+<div id="fileMetaGroup" role="text">
 <p id="fileMeta">No file open.</p>
+</div>
 <details id="editorSettingsDetails">
 <summary>Editor Settings</summary>
 <div class="details-body">
@@ -119,6 +122,16 @@
 <label for="renderSoundToggle">Render Sound</label>
 </div>
 <p id="renderSoundHelp">Play a subtle sound when the rendered graphic updates.</p>
+<div class="toggle-row">
+<input type="checkbox" id="autosaveToggle" checked>
+<label for="autosaveToggle">Autosave</label>
+</div>
+<p id="autosaveHelp">Autosave keeps the current file saved in the browser while you work.</p>
+<div class="slider-row">
+<label for="autosaveMinutesInput">Autosave Interval</label>
+<input type="range" id="autosaveMinutesInput" min="1" max="30" step="1" value="5" aria-valuetext="5 minutes">
+</div>
+<p id="autosaveMinutesHelp">Adjust how many minutes shapeCrafter waits before autosaving your changes.</p>
 </div>
 </details>
 </div>
@@ -178,8 +191,10 @@
 <ul id="fileActionsList" role="list">
 <li><button type="button" id="printButton">Print/Emboss Graphic</button></li>
 <li><button type="button" id="saveButton">Save to Browser</button></li>
+<li><button type="button" id="saveAsButton">Save As...</button></li>
 <li><button type="button" id="downloadButton">Download SVG</button></li>
 <li><button type="button" id="exportRasterButton" aria-haspopup="dialog">Export Raster</button></li>
+<li><button type="button" id="revertButton">Revert File</button></li>
 <li><button type="button" id="renameCurrentFileButton">Rename File</button></li>
 <li><button type="button" id="deleteCurrentFileButton" aria-haspopup="dialog">Delete File</button></li>
 </ul>
@@ -478,6 +493,18 @@
 <label for="fileNameInput">Filename</label>
 <input id="fileNameInput" name="filename" type="text" required>
 
+<label for="sizePresetInput">Size Preset</label>
+<select id="sizePresetInput" name="sizePreset">
+<option value="us-letter-portrait">US Letter - Portrait</option>
+<option value="us-letter-landscape">US Letter - Landscape</option>
+<option value="braille-full">Braille Paper Full Size</option>
+<option value="a4-portrait">A4 - Portrait</option>
+<option value="legal-portrait">Legal - Portrait</option>
+<option value="tabloid-portrait">Tabloid - Portrait</option>
+<option value="icon-1024">1024 by 1024 Icon</option>
+<option value="custom">Custom</option>
+</select>
+
 <label for="viewBoxInput">viewBox</label>
 <input id="viewBoxInput" name="viewbox" type="text" value="0 0 850 1100" required>
 
@@ -495,6 +522,17 @@
 <div class="dialog-actions">
 <button type="button" data-close-dialog="newFileDialog">Cancel</button>
 <button type="submit" value="default">Create File</button>
+</div>
+</form>
+</dialog>
+
+<dialog id="templateDialog">
+<form method="dialog" id="templateForm">
+<h2 id="templateDialogHeading" tabindex="-1">Start File from Template</h2>
+<p>Choose a starter SVG and shapeCrafter will open it as a new file in the editor.</p>
+<div id="templateGrid" class="template-grid"></div>
+<div class="dialog-actions">
+<button type="button" data-close-dialog="templateDialog">Cancel</button>
 </div>
 </form>
 </dialog>

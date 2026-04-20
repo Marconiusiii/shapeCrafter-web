@@ -4,6 +4,7 @@ const SETTINGS_KEY = "shapeCrafter.settings";
 const BASE_TITLE = "shapeCrafter - BlindSVG";
 const MESSAGE_TIMEOUT_MS = 5000;
 const MESSAGE_FADE_MS = 240;
+const AUTOSAVE_MINUTES_DEFAULT = 5;
 const BRAILLE_TABLES = {
 	grade1: "unicode.dis,en-ueb-g1.ctb",
 	grade2: "unicode.dis,en-ueb-g2.ctb",
@@ -12,6 +13,51 @@ const BRAILLE_TABLES = {
 	britishGrade1: "unicode.dis,en-gb-g1.utb",
 	britishGrade2: "unicode.dis,en-GB-g2.ctb",
 	usMath: "unicode.dis,en-us-mathtext.ctb"
+};
+
+const SIZE_PRESETS = {
+	"us-letter-portrait": {
+		label: "US Letter - Portrait",
+		viewBox: "0 0 850 1100",
+		width: "850",
+		height: "1100"
+	},
+	"us-letter-landscape": {
+		label: "US Letter - Landscape",
+		viewBox: "0 0 1100 850",
+		width: "1100",
+		height: "850"
+	},
+	"braille-full": {
+		label: "Braille Paper Full Size",
+		viewBox: "0 0 1100 1150",
+		width: "1100",
+		height: "1150"
+	},
+	"a4-portrait": {
+		label: "A4 - Portrait",
+		viewBox: "0 0 827 1169",
+		width: "827",
+		height: "1169"
+	},
+	"legal-portrait": {
+		label: "Legal - Portrait",
+		viewBox: "0 0 850 1400",
+		width: "850",
+		height: "1400"
+	},
+	"tabloid-portrait": {
+		label: "Tabloid - Portrait",
+		viewBox: "0 0 1100 1700",
+		width: "1100",
+		height: "1700"
+	},
+	"icon-1024": {
+		label: "1024 by 1024 Icon",
+		viewBox: "0 0 1024 1024",
+		width: "1024",
+		height: "1024"
+	}
 };
 
 const PRIMITIVES = [
@@ -76,17 +122,104 @@ const defaultShortcuts = {
 	}
 };
 
+const defaultSettings = {
+	renderDelay: 1.5,
+	renderSound: false,
+	autosave: true,
+	autosaveMinutes: AUTOSAVE_MINUTES_DEFAULT
+};
+
+const TEMPLATE_DEFINITIONS = [
+	{
+		id: "graph-paper",
+		name: "Tactile Graph Paper",
+		blurb: "A full-page graph paper starter with evenly spaced vertical and horizontal lines.",
+		fileName: "tactile-graph-paper",
+		sizePreset: "us-letter-portrait",
+		build: buildGraphPaperTemplate,
+		preview: buildGraphPaperPreview
+	},
+	{
+		id: "dot-grid",
+		name: "Tactile Dot Grid",
+		blurb: "A drawing grid made from evenly spaced tactile dots across the page.",
+		fileName: "tactile-dot-grid",
+		sizePreset: "us-letter-portrait",
+		build: buildDotGridTemplate,
+		preview: buildDotGridPreview
+	},
+	{
+		id: "braille-hello",
+		name: "Braille Hello, World",
+		blurb: "A simple braille greeting starter that uses Braille29 text on Letter paper.",
+		fileName: "braille-hello-world",
+		sizePreset: "us-letter-portrait",
+		build: buildBrailleHelloTemplate,
+		preview: buildBrailleHelloPreview
+	},
+	{
+		id: "bar-chart",
+		name: "Bar Chart Starter",
+		blurb: "Simple axes and four ready-made bars for a tactile chart example.",
+		fileName: "bar-chart-starter",
+		sizePreset: "us-letter-portrait",
+		build: buildBarChartTemplate,
+		preview: buildBarChartPreview
+	},
+	{
+		id: "line-chart",
+		name: "Line Chart Starter",
+		blurb: "A sample line chart built with polyline data and simple x and y axes.",
+		fileName: "line-chart-starter",
+		sizePreset: "us-letter-portrait",
+		build: buildLineChartTemplate,
+		preview: buildLineChartPreview
+	},
+	{
+		id: "wireframe",
+		name: "Wireframe Layout",
+		blurb: "A simple page mockup with a header, main area, sidebar, and footer.",
+		fileName: "wireframe-layout",
+		sizePreset: "us-letter-portrait",
+		build: buildWireframeTemplate,
+		preview: buildWireframePreview
+	},
+	{
+		id: "clock-face",
+		name: "Tactile Clock Face",
+		blurb: "A clock face with rotated hands and tactile numbers sized for Letter paper.",
+		fileName: "tactile-clock-face",
+		sizePreset: "us-letter-portrait",
+		build: buildClockTemplate,
+		preview: buildClockPreview
+	},
+	{
+		id: "emoji-face",
+		name: "Smiling Emoji Face",
+		blurb: "A simple round face starter with eyes and a smiling mouth.",
+		fileName: "smiling-emoji-face",
+		sizePreset: "icon-1024",
+		build: buildEmojiTemplate,
+		preview: buildEmojiPreview
+	}
+];
+
 const state = {
 	currentFileId: "",
 	files: [],
 	currentErrors: [],
+	currentSessionSnapshotContent: "",
+	currentSessionSnapshotAt: "",
 	lastFocusedTrigger: null,
 	pendingDeleteFileId: "",
+	pendingFileRowFocusId: "",
+	openFileRowMenuId: "",
 	pendingPrimitive: null,
 	pendingFocusTarget: null,
 	shouldRestoreFocus: true,
 	shortcuts: loadShortcuts(),
 	settings: loadSettings(),
+	autosaveTimeoutId: 0,
 	toastTimeoutId: 0,
 	toastFadeTimeoutId: 0,
 	editorAnnouncementTimeoutId: 0,
@@ -111,6 +244,7 @@ const elements = {
 	siteFooter: document.querySelector(".site-footer"),
 	homeView: document.getElementById("homeView"),
 	homeHeading: document.getElementById("homeHeading"),
+	openTemplateButton: document.getElementById("openTemplateButton"),
 	workspaceSection: document.getElementById("workspaceSection"),
 	editorView: document.getElementById("editorView"),
 	fullscreenView: document.getElementById("fullscreenView"),
@@ -127,12 +261,17 @@ const elements = {
 	fullscreenRenderPlaceholder: document.getElementById("fullscreenRenderPlaceholder"),
 	renderMeta: document.getElementById("renderMeta"),
 	currentFileHeading: document.getElementById("currentFileHeading"),
+	fileMetaGroup: document.getElementById("fileMetaGroup"),
 	fileMeta: document.getElementById("fileMeta"),
 	renameCurrentFileButton: document.getElementById("renameCurrentFileButton"),
 	deleteCurrentFileButton: document.getElementById("deleteCurrentFileButton"),
+	saveAsButton: document.getElementById("saveAsButton"),
+	revertButton: document.getElementById("revertButton"),
 	liveViewToggle: document.getElementById("liveViewToggle"),
 	renderDelayInput: document.getElementById("renderDelayInput"),
 	renderSoundToggle: document.getElementById("renderSoundToggle"),
+	autosaveToggle: document.getElementById("autosaveToggle"),
+	autosaveMinutesInput: document.getElementById("autosaveMinutesInput"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -157,9 +296,14 @@ const elements = {
 	newFileForm: document.getElementById("newFileForm"),
 	newFileDialogHeading: document.getElementById("newFileDialogHeading"),
 	fileNameInput: document.getElementById("fileNameInput"),
+	sizePresetInput: document.getElementById("sizePresetInput"),
 	viewBoxInput: document.getElementById("viewBoxInput"),
 	svgWidthInput: document.getElementById("svgWidthInput"),
 	svgHeightInput: document.getElementById("svgHeightInput"),
+	templateDialog: document.getElementById("templateDialog"),
+	templateForm: document.getElementById("templateForm"),
+	templateDialogHeading: document.getElementById("templateDialogHeading"),
+	templateGrid: document.getElementById("templateGrid"),
 	shapeDialog: document.getElementById("shapeDialog"),
 	shapeForm: document.getElementById("shapeForm"),
 	shapeDialogTitle: document.getElementById("shapeDialogTitle"),
@@ -221,12 +365,18 @@ document.getElementById("newFileButton").addEventListener("click", (event) => {
 	openDialog(elements.newFileDialog, elements.newFileDialogHeading);
 });
 
+elements.openTemplateButton.addEventListener("click", (event) => {
+	state.lastFocusedTrigger = event.currentTarget;
+	openDialog(elements.templateDialog, elements.templateDialogHeading);
+});
+
 document.getElementById("openShortcutsButton").addEventListener("click", (event) => {
 	state.lastFocusedTrigger = event.currentTarget;
 	openShortcutsDialog();
 });
 
 document.getElementById("saveButton").addEventListener("click", saveCurrentFile);
+elements.saveAsButton.addEventListener("click", saveCurrentFileAs);
 document.getElementById("downloadButton").addEventListener("click", downloadSvg);
 document.getElementById("backToHomeFromEditorButton").addEventListener("click", returnHome);
 document.getElementById("renderButton").addEventListener("click", () => {
@@ -243,6 +393,7 @@ elements.renameCurrentFileButton.addEventListener("click", () => {
 		renameFile(state.currentFileId);
 	}
 });
+elements.revertButton.addEventListener("click", revertCurrentFileToSessionStart);
 elements.deleteCurrentFileButton.addEventListener("click", () => {
 	if (state.currentFileId) {
 		openDeleteDialog(state.currentFileId, elements.deleteCurrentFileButton);
@@ -276,10 +427,13 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
 });
 
 document.addEventListener("pointerdown", handleDocumentPointerDown);
+window.addEventListener("beforeunload", handleBeforeUnload);
 
 elements.fileNameInput.addEventListener("input", () => {
 	elements.fileNameInput.setCustomValidity("");
 });
+
+elements.sizePresetInput.addEventListener("change", handleSizePresetChange);
 
 elements.fileNameInput.addEventListener("invalid", () => {
 	if (!elements.fileNameInput.value.trim()) {
@@ -299,6 +453,8 @@ elements.exportDpiInput.addEventListener("invalid", validateExportDpiInput);
 elements.liveViewToggle.addEventListener("change", handleLiveViewChange);
 elements.renderDelayInput.addEventListener("input", handleRenderDelayChange);
 elements.renderSoundToggle.addEventListener("change", handleRenderSoundChange);
+elements.autosaveToggle.addEventListener("change", handleAutosaveToggleChange);
+elements.autosaveMinutesInput.addEventListener("input", handleAutosaveMinutesChange);
 elements.attributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromDesktop);
 elements.mobileAttributePromptToggle.addEventListener("change", syncAttributePromptTogglesFromMobile);
 elements.addSelectedPrimitiveButton.addEventListener("click", addSelectedPrimitiveFromPicker);
@@ -306,25 +462,16 @@ elements.addSelectedPrimitiveButton.addEventListener("click", addSelectedPrimiti
 elements.newFileForm.addEventListener("submit", (event) => {
 	event.preventDefault();
 	const filename = elements.fileNameInput.value.trim();
+	const preset = elements.sizePresetInput.value;
 	const viewBox = elements.viewBoxInput.value.trim();
 	const width = elements.svgWidthInput.value.trim();
 	const height = elements.svgHeightInput.value.trim();
-	const file = createFileRecord(filename, viewBox, width, height);
+	const file = createFileRecord(filename, viewBox, width, height, "", { sizePreset: preset });
+	finalizeCurrentSession({ save: true });
 	state.files = upsertFile(file);
-	state.currentFileId = file.id;
-	elements.svgEditor.value = file.content;
-	resetRenderedOutput();
-	setActiveView("editor");
-	updateWorkspaceMeta(file);
 	persistFiles();
-	renderFileList();
-	clearMessages();
-	setStatus(`Created ${file.name}.`);
 	closeDialog(elements.newFileDialog, { restoreFocus: false });
-	focusActiveHeading(elements.currentFileHeading);
-	if (elements.liveViewToggle.checked) {
-		scheduleLiveRender();
-	}
+	openEditorFile(file, { statusMessage: `Created ${file.name}.` });
 });
 
 [
@@ -332,6 +479,8 @@ elements.newFileForm.addEventListener("submit", (event) => {
 	document.getElementById("saveButton"),
 	document.getElementById("downloadButton"),
 	elements.renameCurrentFileButton,
+	elements.saveAsButton,
+	elements.revertButton,
 	elements.deleteCurrentFileButton
 ].forEach((button) => {
 	button.addEventListener("click", closeFileActionsMenu);
@@ -361,7 +510,7 @@ elements.jumpForm.addEventListener("submit", (event) => {
 	focusEditorLine(line);
 });
 
-[elements.shortcutsDialog, elements.newFileDialog, elements.shapeDialog, elements.jumpDialog, elements.quickAddDialog, elements.exportDialog, elements.errorDialog, elements.deleteDialog].forEach((dialog) => {
+[elements.shortcutsDialog, elements.newFileDialog, elements.templateDialog, elements.shapeDialog, elements.jumpDialog, elements.quickAddDialog, elements.exportDialog, elements.errorDialog, elements.deleteDialog].forEach((dialog) => {
 	dialog.addEventListener("close", handleDialogClose);
 });
 
@@ -454,6 +603,7 @@ window.addEventListener("afterprint", () => {
 initPrimitiveList();
 initPrimitiveSelect();
 initQuickAddList();
+initTemplateGrid();
 updateShortcutModifierLabels();
 initBrailleConverter();
 renderFileList();
@@ -475,6 +625,27 @@ function prepareNewFileDialog() {
 	elements.newFileForm.reset();
 	elements.fileNameInput.value = "";
 	elements.fileNameInput.setCustomValidity("");
+	elements.sizePresetInput.value = "us-letter-portrait";
+	applySizePreset("us-letter-portrait");
+}
+
+function handleSizePresetChange() {
+	applySizePreset(elements.sizePresetInput.value);
+}
+
+function applySizePreset(presetId) {
+	const preset = SIZE_PRESETS[presetId];
+	const isCustom = presetId === "custom" || !preset;
+
+	if (preset) {
+		elements.viewBoxInput.value = preset.viewBox;
+		elements.svgWidthInput.value = preset.width;
+		elements.svgHeightInput.value = preset.height;
+	}
+
+	[elements.viewBoxInput, elements.svgWidthInput, elements.svgHeightInput].forEach((input) => {
+		input.readOnly = !isCustom;
+	});
 }
 
 function handleLiveViewChange() {
@@ -504,6 +675,25 @@ function handleRenderSoundChange() {
 	persistSettings();
 }
 
+function handleAutosaveToggleChange() {
+	state.settings.autosave = elements.autosaveToggle.checked;
+	elements.autosaveMinutesInput.disabled = !state.settings.autosave;
+	persistSettings();
+	if (!state.settings.autosave) {
+		window.clearTimeout(state.autosaveTimeoutId);
+		return;
+	}
+	scheduleAutosave();
+}
+
+function handleAutosaveMinutesChange() {
+	state.settings.autosaveMinutes = normalizeAutosaveMinutes(elements.autosaveMinutesInput.value);
+	elements.autosaveMinutesInput.value = String(state.settings.autosaveMinutes);
+	updateAutosaveMinutesValue();
+	persistSettings();
+	scheduleAutosave();
+}
+
 function scheduleLiveRender() {
 	window.clearTimeout(state.liveRenderTimeoutId);
 	state.liveRenderTimeoutId = window.setTimeout(() => {
@@ -511,14 +701,35 @@ function scheduleLiveRender() {
 	}, state.settings.renderDelay * 1000);
 }
 
+function scheduleAutosave() {
+	window.clearTimeout(state.autosaveTimeoutId);
+	if (!state.settings.autosave || !state.currentFileId || !hasUnsavedChanges()) {
+		return;
+	}
+
+	state.autosaveTimeoutId = window.setTimeout(() => {
+		saveCurrentFile({ announce: false, showToastMessage: false, source: "autosave" });
+	}, state.settings.autosaveMinutes * 60 * 1000);
+}
+
 function syncSettingsInputs() {
 	elements.renderDelayInput.value = String(state.settings.renderDelay);
 	updateRenderDelayValue();
 	elements.renderSoundToggle.checked = state.settings.renderSound;
+	elements.autosaveToggle.checked = state.settings.autosave;
+	elements.autosaveMinutesInput.value = String(state.settings.autosaveMinutes);
+	elements.autosaveMinutesInput.disabled = !state.settings.autosave;
+	updateAutosaveMinutesValue();
 }
 
 function updateRenderDelayValue() {
 	elements.renderDelayInput.setAttribute("aria-valuetext", `${Number(state.settings.renderDelay).toFixed(1)} seconds`);
+}
+
+function updateAutosaveMinutesValue() {
+	const minutes = Number(state.settings.autosaveMinutes);
+	const label = minutes === 1 ? "1 minute" : `${minutes} minutes`;
+	elements.autosaveMinutesInput.setAttribute("aria-valuetext", label);
 }
 
 function initBrailleConverter() {
@@ -710,6 +921,70 @@ function initQuickAddList() {
 	elements.quickAddList.appendChild(fragment);
 }
 
+function initTemplateGrid() {
+	const fragment = document.createDocumentFragment();
+
+	TEMPLATE_DEFINITIONS.forEach((template) => {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "template-card";
+		button.addEventListener("click", () => {
+			closeDialog(elements.templateDialog, { restoreFocus: false });
+			requestAnimationFrame(() => {
+				startFileFromTemplate(template.id);
+			});
+		});
+
+		const preview = document.createElement("img");
+		preview.className = "template-card__preview";
+		preview.alt = "";
+		preview.src = buildTemplatePreviewDataUri(template.preview());
+
+		const textWrap = document.createElement("span");
+		textWrap.className = "template-card__text";
+
+		const title = document.createElement("span");
+		title.className = "template-card__title";
+		title.textContent = template.name;
+
+		const blurb = document.createElement("span");
+		blurb.className = "template-card__blurb";
+		blurb.textContent = template.blurb;
+
+		textWrap.append(title, blurb);
+		button.append(preview, textWrap);
+		fragment.appendChild(button);
+	});
+
+	elements.templateGrid.replaceChildren(fragment);
+}
+
+function buildTemplatePreviewDataUri(svgMarkup) {
+	return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgMarkup)}`;
+}
+
+function startFileFromTemplate(templateId) {
+	const template = TEMPLATE_DEFINITIONS.find((item) => item.id === templateId);
+	if (!template) {
+		return;
+	}
+
+	const preset = SIZE_PRESETS[template.sizePreset];
+	const file = createFileRecord(
+		template.fileName,
+		preset.viewBox,
+		preset.width,
+		preset.height,
+		template.build(`${sanitizeFilename(template.fileName)}.svg`),
+		{ sizePreset: template.sizePreset }
+	);
+
+	finalizeCurrentSession({ save: true });
+	state.files = upsertFile(file);
+	persistFiles();
+	openEditorFile(file, { statusMessage: `Created ${file.name} from template.` });
+}
+
 function insertPrimitiveIntoEditor(primitive) {
 	const markup = buildPrimitiveMarkup(primitive);
 	insertAtCursor(markup);
@@ -755,9 +1030,10 @@ function openShapeDialog(primitive) {
 	openDialog(elements.shapeDialog, elements.shapeDialogTitle);
 }
 
-function createFileRecord(name, viewBox, width, height) {
+function createFileRecord(name, viewBox, width, height, content = "", options = {}) {
 	const safeName = sanitizeFilename(name || "untitled");
-	const content = [
+	const timestamp = new Date().toISOString();
+	const fileContent = content || [
 		`<svg viewBox="${viewBox}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`,
 		`<title>${escapeXml(safeName)}</title>`,
 		"",
@@ -770,8 +1046,10 @@ function createFileRecord(name, viewBox, width, height) {
 		viewBox,
 		width,
 		height,
-		updatedAt: new Date().toISOString(),
-		content
+		sizePreset: options.sizePreset || "custom",
+		updatedAt: timestamp,
+		lastSavedAt: timestamp,
+		content: fileContent
 	};
 }
 
@@ -902,15 +1180,28 @@ function focusEditorLine(lineNumber) {
 
 function updateWorkspaceMeta(file) {
 	elements.currentFileHeading.textContent = file.name;
-	elements.fileMeta.textContent = `Updated ${formatDate(file.updatedAt)}`;
+	elements.fileMeta.textContent = buildFileMetaText(file);
 	elements.renameCurrentFileButton.textContent = `Rename ${file.name}`;
 	elements.deleteCurrentFileButton.textContent = `Delete ${file.name}`;
+	elements.revertButton.textContent = state.currentSessionSnapshotAt
+		? `Revert Back to ${formatDate(state.currentSessionSnapshotAt)}`
+		: "Revert File";
 	if (elements.renderMeta) {
 		elements.renderMeta.textContent = state.lastRenderedMarkup
 			? `${file.name} rendered and ready for print or export.`
 			: "Rendered output will appear here.";
 	}
 	updateDocumentTitle();
+}
+
+function buildFileMetaText(file) {
+	if (!file) {
+		return "No file open.";
+	}
+
+	const updatedText = `Updated ${formatDate(file.updatedAt)}`;
+	const lastSavedText = file.lastSavedAt ? `Last Saved: ${formatTime(file.lastSavedAt)}` : "Last Saved: Not yet saved";
+	return `${updatedText}. ${lastSavedText}`;
 }
 
 function formatDate(isoString) {
@@ -924,8 +1215,16 @@ function formatDate(isoString) {
 		hour: "numeric",
 		minute: "2-digit",
 		hour12: true
-	}).format(date).replace(/\s/g, "");
+	}).format(date).replace(/\s/g, "").toLowerCase();
 	return `${datePart}, ${timePart}`;
+}
+
+function formatTime(isoString) {
+	return new Intl.DateTimeFormat("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true
+	}).format(new Date(isoString)).replace(/\s/g, "").toLowerCase();
 }
 
 function renderFileList() {
@@ -944,60 +1243,48 @@ function renderFileList() {
 
 	state.files
 		.slice()
-		.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+		.sort((a, b) => new Date((b.lastSavedAt || b.updatedAt)) - new Date((a.lastSavedAt || a.updatedAt)))
 		.forEach((file) => {
 			const row = document.createElement("tr");
+			row.dataset.fileId = file.id;
 
 			const openButton = document.createElement("button");
 			openButton.type = "button";
-			openButton.textContent = `${file.name}, ${formatDate(file.updatedAt)}`;
+			openButton.id = `file-open-${file.id}`;
+			openButton.textContent = `${file.name}, ${formatDate(file.lastSavedAt || file.updatedAt)}`;
 			openButton.setAttribute("aria-description", "Opens file");
 			openButton.addEventListener("click", () => openFile(file.id));
 
 			const fileCell = document.createElement("td");
 			fileCell.appendChild(openButton);
 
-			const actions = document.createElement("div");
-			actions.className = "file-actions";
-
-			const renameButton = document.createElement("button");
-			renameButton.type = "button";
-			renameButton.textContent = `Rename ${file.name}`;
-			renameButton.addEventListener("click", () => renameFile(file.id));
-
-			const deleteButton = document.createElement("button");
-			deleteButton.type = "button";
-			deleteButton.textContent = `Delete ${file.name}`;
-			deleteButton.setAttribute("aria-haspopup", "dialog");
-			deleteButton.addEventListener("click", () => openDeleteDialog(file.id, deleteButton));
-
-			actions.append(renameButton, deleteButton);
 			const actionsCell = document.createElement("td");
-			actionsCell.appendChild(actions);
+			actionsCell.appendChild(buildSavedFileActions(file));
 			row.append(fileCell, actionsCell);
 			fragment.appendChild(row);
 		});
 
 	elements.fileTableBody.appendChild(fragment);
+
+	if (state.pendingFileRowFocusId) {
+		requestAnimationFrame(() => {
+			const focusTarget = document.getElementById(state.pendingFileRowFocusId);
+			if (focusTarget) {
+				focusTarget.focus();
+			}
+			state.pendingFileRowFocusId = "";
+		});
+	}
 }
 
 function openFile(fileId) {
+	finalizeCurrentSession({ save: true });
 	const file = loadFiles().find((item) => item.id === fileId);
 	if (!file) {
 		return;
 	}
 
-	state.currentFileId = file.id;
-	setActiveView("editor");
-	elements.svgEditor.value = file.content;
-	resetRenderedOutput();
-	updateWorkspaceMeta(file);
-	clearMessages();
-	setStatus(`Opened ${file.name}.`);
-	focusActiveHeading(elements.currentFileHeading);
-	if (elements.liveViewToggle.checked) {
-		scheduleLiveRender();
-	}
+	openEditorFile(file, { statusMessage: `Opened ${file.name}.` });
 }
 
 function renameFile(fileId) {
@@ -1015,6 +1302,7 @@ function renameFile(fileId) {
 	file.name = `${sanitizeFilename(nextName)}.svg`;
 	file.updatedAt = new Date().toISOString();
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+	state.files = files;
 	renderFileList();
 
 	if (state.currentFileId === fileId) {
@@ -1034,13 +1322,18 @@ function deleteFile(fileId) {
 	const nextFiles = files.filter((item) => item.id !== fileId);
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(nextFiles));
 	state.files = nextFiles;
+	closeFileRowMenu();
 
 	if (state.currentFileId === fileId) {
+		window.clearTimeout(state.autosaveTimeoutId);
 		state.currentFileId = "";
+		state.currentSessionSnapshotContent = "";
+		state.currentSessionSnapshotAt = "";
 		elements.currentFileHeading.textContent = "Untitled";
 		elements.fileMeta.textContent = "No file open.";
 		elements.renameCurrentFileButton.textContent = "Rename File";
 		elements.deleteCurrentFileButton.textContent = "Delete File";
+		elements.revertButton.textContent = "Revert File";
 		elements.svgEditor.value = "";
 		resetRenderedOutput();
 		setActiveView("home");
@@ -1058,7 +1351,13 @@ function confirmDeleteFile() {
 	deleteFile(fileId);
 }
 
-function saveCurrentFile() {
+function saveCurrentFile(options = {}) {
+	const {
+		announce = true,
+		showToastMessage = true,
+		source = "manual"
+	} = options;
+
 	if (!elements.svgEditor.value.trim()) {
 		setStatus("There is no SVG code to save yet.");
 		return;
@@ -1072,13 +1371,67 @@ function saveCurrentFile() {
 
 	file.content = elements.svgEditor.value;
 	file.updatedAt = new Date().toISOString();
+	file.lastSavedAt = file.updatedAt;
 	state.files = upsertFile(file);
 	persistFiles();
 	updateWorkspaceMeta(file);
 	renderFileList();
-	setStatus(`${file.name} saved to this browser.`);
-	announceEditorChange(`${file.name} saved`);
-	showToast(`${file.name} saved`);
+	if (announce) {
+		setStatus(`${file.name} saved to this browser.`);
+		announceEditorChange(`${file.name} saved`);
+	}
+	if (showToastMessage) {
+		showToast(`${file.name} saved`);
+	}
+	if (source === "manual" || source === "autosave") {
+		scheduleAutosave();
+	}
+	return file;
+}
+
+function saveCurrentFileAs() {
+	const currentFile = getCurrentFile();
+	if (!currentFile) {
+		return;
+	}
+
+	const nextName = window.prompt("Save file as", currentFile.name.replace(/\.svg$/i, ""));
+	if (!nextName) {
+		return;
+	}
+
+	const nextFile = createFileRecord(
+		nextName,
+		currentFile.viewBox,
+		currentFile.width,
+		currentFile.height,
+		elements.svgEditor.value,
+		{ sizePreset: currentFile.sizePreset || "custom" }
+	);
+
+	state.files = upsertFile(nextFile);
+	persistFiles();
+	openEditorFile(nextFile, { statusMessage: `Saved a new copy as ${nextFile.name}.` });
+}
+
+function revertCurrentFileToSessionStart() {
+	const currentFile = getCurrentFile();
+	if (!currentFile || !state.currentSessionSnapshotContent) {
+		return;
+	}
+
+	elements.svgEditor.value = state.currentSessionSnapshotContent;
+	resetRenderedOutput();
+	clearMessages();
+	window.clearTimeout(state.liveRenderTimeoutId);
+	scheduleAutosave();
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
+	setStatus(`Reverted ${currentFile.name} back to ${formatDate(state.currentSessionSnapshotAt)}.`);
+	elements.svgEditor.focus();
+	elements.svgEditor.setSelectionRange(0, 0);
+	elements.svgEditor.scrollTop = 0;
 }
 
 function upsertFile(file) {
@@ -1093,23 +1446,148 @@ function persistFiles() {
 
 function loadFiles() {
 	try {
-		return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+		return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]").map((file) => ({
+			...file,
+			sizePreset: file.sizePreset || "custom",
+			lastSavedAt: file.lastSavedAt || file.updatedAt
+		}));
 	} catch (error) {
 		return [];
 	}
 }
 
 function updateCurrentFileContent(content) {
-	const files = loadFiles();
-	const file = files.find((item) => item.id === state.currentFileId);
+	void content;
+	scheduleAutosave();
+}
+
+function openEditorFile(file, options = {}) {
+	const {
+		statusMessage = ""
+	} = options;
+
+	state.currentFileId = file.id;
+	state.currentSessionSnapshotContent = file.content;
+	state.currentSessionSnapshotAt = file.lastSavedAt || file.updatedAt;
+	setActiveView("editor");
+	elements.svgEditor.value = file.content;
+	resetRenderedOutput();
+	updateWorkspaceMeta(file);
+	clearMessages();
+	if (statusMessage) {
+		setStatus(statusMessage);
+	}
+	focusActiveHeading(elements.currentFileHeading);
+	window.clearTimeout(state.autosaveTimeoutId);
+	if (elements.liveViewToggle.checked) {
+		scheduleLiveRender();
+	}
+}
+
+function hasUnsavedChanges() {
+	const currentFile = getCurrentFile();
+	if (!currentFile) {
+		return false;
+	}
+
+	return elements.svgEditor.value !== currentFile.content;
+}
+
+function finalizeCurrentSession(options = {}) {
+	const save = options.save !== false;
+	if (!save || !state.currentFileId) {
+		return;
+	}
+
+	saveCurrentFile({ announce: false, showToastMessage: false, source: "session" });
+}
+
+function handleBeforeUnload() {
+	finalizeCurrentSession({ save: true });
+}
+
+function buildSavedFileActions(file) {
+	const wrapper = document.createElement("div");
+	wrapper.className = "saved-file-actions";
+	wrapper.dataset.fileId = file.id;
+
+	const trigger = document.createElement("button");
+	trigger.type = "button";
+	trigger.className = "saved-file-actions__button";
+	trigger.id = `file-actions-trigger-${file.id}`;
+	trigger.textContent = `${file.name} Actions`;
+	trigger.setAttribute("aria-expanded", "false");
+	trigger.setAttribute("aria-controls", `file-actions-menu-${file.id}`);
+	trigger.addEventListener("click", () => toggleFileRowMenu(file.id));
+	trigger.addEventListener("keydown", (event) => handleFileRowButtonKeydown(event, file.id));
+
+	const menu = document.createElement("div");
+	menu.id = `file-actions-menu-${file.id}`;
+	menu.className = "saved-file-actions__menu";
+	menu.hidden = true;
+	menu.setAttribute("inert", "");
+	menu.addEventListener("keydown", (event) => handleFileRowMenuKeydown(event, file.id));
+
+	const list = document.createElement("ul");
+	list.className = "saved-file-actions__list";
+	list.setAttribute("role", "list");
+
+	const renameButton = document.createElement("button");
+	renameButton.type = "button";
+	renameButton.textContent = "Rename";
+	renameButton.addEventListener("click", () => {
+		closeFileRowMenu();
+		renameFile(file.id);
+	});
+
+	const duplicateButton = document.createElement("button");
+	duplicateButton.type = "button";
+	duplicateButton.textContent = "Duplicate";
+	duplicateButton.addEventListener("click", () => {
+		closeFileRowMenu();
+		duplicateFile(file.id);
+	});
+
+	const deleteButton = document.createElement("button");
+	deleteButton.type = "button";
+	deleteButton.textContent = "Delete";
+	deleteButton.setAttribute("aria-haspopup", "dialog");
+	deleteButton.addEventListener("click", () => {
+		closeFileRowMenu();
+		openDeleteDialog(file.id, deleteButton);
+	});
+
+	[renameButton, duplicateButton, deleteButton].forEach((button) => {
+		const item = document.createElement("li");
+		item.appendChild(button);
+		list.appendChild(item);
+	});
+
+	menu.appendChild(list);
+	wrapper.append(trigger, menu);
+	return wrapper;
+}
+
+function duplicateFile(fileId) {
+	const file = loadFiles().find((item) => item.id === fileId);
 	if (!file) {
 		return;
 	}
 
-	file.content = content;
-	file.updatedAt = new Date().toISOString();
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
-	updateWorkspaceMeta(file);
+	const copyFile = createFileRecord(
+		`${file.name.replace(/\.svg$/i, "")} copy`,
+		file.viewBox,
+		file.width,
+		file.height,
+		file.content,
+		{ sizePreset: file.sizePreset || "custom" }
+	);
+
+	state.files = upsertFile(copyFile);
+	persistFiles();
+	state.pendingFileRowFocusId = `file-open-${copyFile.id}`;
+	renderFileList();
+	setStatus(`Created ${copyFile.name}.`);
 }
 
 function renderSvg(options = {}) {
@@ -1164,6 +1642,7 @@ function renderSvg(options = {}) {
 }
 
 function returnHome() {
+	finalizeCurrentSession({ save: true });
 	closeFullscreenGraphic({ restoreFocus: false });
 	setActiveView("home");
 	clearStatus();
@@ -1172,6 +1651,8 @@ function returnHome() {
 
 function setActiveView(viewName) {
 	const showFullscreen = viewName === "fullscreen";
+	closeFileActionsMenu();
+	closeFileRowMenu();
 	moveFileActionsToHost(showFullscreen ? elements.fullscreenFileActionsHost : elements.editorFileActionsHost);
 	document.body.classList.toggle("is-fullscreen-graphic", showFullscreen);
 	syncRegion(elements.skipLink, !showFullscreen);
@@ -1191,6 +1672,7 @@ function moveFileActionsToHost(host) {
 	}
 
 	closeFileActionsMenu();
+	closeFileRowMenu();
 	host.appendChild(elements.fileActionsPopdown);
 }
 
@@ -1295,6 +1777,7 @@ function closeFileActionsMenu() {
 
 function openFileActionsMenu(focusMode = "first") {
 	if (!isFileActionsMenuOpen()) {
+		closeFileRowMenu();
 		elements.fileActionsMenu.hidden = false;
 		elements.fileActionsMenu.removeAttribute("inert");
 		elements.fileActionsButton.setAttribute("aria-expanded", "true");
@@ -1391,14 +1874,152 @@ function handleFileActionsMenuKeydown(event) {
 
 function handleDocumentPointerDown(event) {
 	if (!isFileActionsMenuOpen()) {
+		closeFileRowMenuIfOutside(event);
 		return;
 	}
 
 	if (elements.fileActionsPopdown && elements.fileActionsPopdown.contains(event.target)) {
+		closeFileRowMenuIfOutside(event);
 		return;
 	}
 
 	closeFileActionsMenu();
+	closeFileRowMenuIfOutside(event);
+}
+
+function closeFileRowMenu() {
+	if (!state.openFileRowMenuId) {
+		return;
+	}
+
+	const trigger = document.getElementById(`file-actions-trigger-${state.openFileRowMenuId}`);
+	const menu = document.getElementById(`file-actions-menu-${state.openFileRowMenuId}`);
+	if (menu) {
+		menu.hidden = true;
+		menu.setAttribute("inert", "");
+	}
+	if (trigger) {
+		trigger.setAttribute("aria-expanded", "false");
+	}
+	state.openFileRowMenuId = "";
+}
+
+function openFileRowMenu(fileId, focusMode = "first") {
+	if (state.openFileRowMenuId && state.openFileRowMenuId !== fileId) {
+		closeFileRowMenu();
+	}
+
+	const trigger = document.getElementById(`file-actions-trigger-${fileId}`);
+	const menu = document.getElementById(`file-actions-menu-${fileId}`);
+	if (!trigger || !menu) {
+		return;
+	}
+
+	menu.hidden = false;
+	menu.removeAttribute("inert");
+	trigger.setAttribute("aria-expanded", "true");
+	state.openFileRowMenuId = fileId;
+
+	const items = getFileRowMenuItems(fileId);
+	if (!items.length) {
+		return;
+	}
+
+	const target = focusMode === "last" ? items[items.length - 1] : items[0];
+	requestAnimationFrame(() => {
+		target.focus();
+	});
+}
+
+function toggleFileRowMenu(fileId) {
+	if (state.openFileRowMenuId === fileId) {
+		closeFileRowMenu();
+		return;
+	}
+
+	openFileRowMenu(fileId);
+}
+
+function getFileRowMenuItems(fileId) {
+	const menu = document.getElementById(`file-actions-menu-${fileId}`);
+	if (!menu) {
+		return [];
+	}
+
+	return [...menu.querySelectorAll("button")];
+}
+
+function handleFileRowButtonKeydown(event, fileId) {
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault();
+		toggleFileRowMenu(fileId);
+		return;
+	}
+
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		openFileRowMenu(fileId, "first");
+		return;
+	}
+
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		openFileRowMenu(fileId, "last");
+	}
+}
+
+function handleFileRowMenuKeydown(event, fileId) {
+	const items = getFileRowMenuItems(fileId);
+	const currentIndex = items.indexOf(document.activeElement);
+	if (!items.length) {
+		return;
+	}
+
+	if (event.key === "Escape") {
+		event.preventDefault();
+		closeFileRowMenu();
+		const trigger = document.getElementById(`file-actions-trigger-${fileId}`);
+		if (trigger) {
+			trigger.focus();
+		}
+		return;
+	}
+
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		items[(currentIndex + 1 + items.length) % items.length].focus();
+		return;
+	}
+
+	if (event.key === "ArrowUp") {
+		event.preventDefault();
+		items[(currentIndex - 1 + items.length) % items.length].focus();
+		return;
+	}
+
+	if (event.key === "Home") {
+		event.preventDefault();
+		items[0].focus();
+		return;
+	}
+
+	if (event.key === "End") {
+		event.preventDefault();
+		items[items.length - 1].focus();
+	}
+}
+
+function closeFileRowMenuIfOutside(event) {
+	if (!state.openFileRowMenuId) {
+		return;
+	}
+
+	const wrapper = document.querySelector(`.saved-file-actions[data-file-id="${state.openFileRowMenuId}"]`);
+	if (wrapper && wrapper.contains(event.target)) {
+		return;
+	}
+
+	closeFileRowMenu();
 }
 
 function playRenderSound() {
@@ -1919,6 +2540,215 @@ function mimeToExtension(type) {
 	}
 }
 
+function buildSvgDocument(name, viewBox, width, height, bodyLines) {
+	return [
+		`<svg viewBox="${viewBox}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`,
+		`<title>${escapeXml(name.replace(/\.svg$/i, ""))}</title>`,
+		"",
+		...bodyLines,
+		"",
+		"</svg>"
+	].join("\n");
+}
+
+function buildGraphPaperTemplate(name) {
+	const lines = [
+		"<!-- Tactile graph paper starter for a Letter-size page. -->",
+		"<!-- Change the spacing or stroke weight to match your embossing needs. -->",
+		"",
+		"<rect x=\"50\" y=\"50\" width=\"750\" height=\"1000\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
+		"",
+		"<!-- Vertical grid lines -->"
+	];
+
+	for (let x = 100; x < 800; x += 50) {
+		lines.push(`<line x1="${x}" y1="50" x2="${x}" y2="1050" stroke="black" stroke-width="2" />`);
+	}
+
+	lines.push("", "<!-- Horizontal grid lines -->");
+
+	for (let y = 100; y < 1050; y += 50) {
+		lines.push(`<line x1="50" y1="${y}" x2="800" y2="${y}" stroke="black" stroke-width="2" />`);
+	}
+
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", lines);
+}
+
+function buildDotGridTemplate(name) {
+	const lines = [
+		"<!-- Tactile dot grid starter for freeform drawing and point plotting. -->",
+		"",
+		"<!-- Border -->",
+		"<rect x=\"50\" y=\"50\" width=\"750\" height=\"1000\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
+		"",
+		"<!-- Dot grid -->"
+	];
+
+	for (let y = 100; y <= 1000; y += 50) {
+		for (let x = 100; x <= 750; x += 50) {
+			lines.push(`<circle cx="${x}" cy="${y}" r="6" fill="black" />`);
+		}
+	}
+
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", lines);
+}
+
+function buildBrailleHelloTemplate(name) {
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
+		"<!-- Braille text starter. -->",
+		"<!-- Braille29 should be installed on the system for this font-family value to render as expected. -->",
+		"",
+		"<text x=\"120\" y=\"300\" font-family=\"Braille29, sans-serif\" font-size=\"72\" fill=\"black\">⠓⠑⠇⠇⠕⠂ ⠺⠕⠗⠇⠙⠖</text>",
+		"",
+		"<!-- Add more braille or print text below this line. -->"
+	]);
+}
+
+function buildBarChartTemplate(name) {
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
+		"<!-- Bar chart starter with simple axes and sample data. -->",
+		"",
+		"<!-- Chart axes -->",
+		"<line x1=\"120\" y1=\"920\" x2=\"720\" y2=\"920\" stroke=\"black\" stroke-width=\"6\" />",
+		"<line x1=\"120\" y1=\"920\" x2=\"120\" y2=\"220\" stroke=\"black\" stroke-width=\"6\" />",
+		"",
+		"<!-- Bars -->",
+		"<rect x=\"180\" y=\"600\" width=\"80\" height=\"320\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
+		"<rect x=\"300\" y=\"480\" width=\"80\" height=\"440\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
+		"<rect x=\"420\" y=\"700\" width=\"80\" height=\"220\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
+		"<rect x=\"540\" y=\"360\" width=\"80\" height=\"560\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
+		"",
+		"<!-- Axis labels -->",
+		"<text x=\"190\" y=\"980\" font-size=\"32\" fill=\"black\">A</text>",
+		"<text x=\"310\" y=\"980\" font-size=\"32\" fill=\"black\">B</text>",
+		"<text x=\"430\" y=\"980\" font-size=\"32\" fill=\"black\">C</text>",
+		"<text x=\"550\" y=\"980\" font-size=\"32\" fill=\"black\">D</text>"
+	]);
+}
+
+function buildLineChartTemplate(name) {
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
+		"<!-- Line chart starter that uses polyline for the data path. -->",
+		"",
+		"<!-- Chart axes -->",
+		"<line x1=\"120\" y1=\"920\" x2=\"720\" y2=\"920\" stroke=\"black\" stroke-width=\"6\" />",
+		"<line x1=\"120\" y1=\"920\" x2=\"120\" y2=\"220\" stroke=\"black\" stroke-width=\"6\" />",
+		"",
+		"<!-- Data line -->",
+		"<polyline points=\"160,780 250,640 340,700 430,460 520,520 610,340 700,390\" stroke=\"black\" stroke-width=\"6\" fill=\"none\" />",
+		"",
+		"<!-- Data points -->",
+		"<circle cx=\"160\" cy=\"780\" r=\"10\" fill=\"black\" />",
+		"<circle cx=\"250\" cy=\"640\" r=\"10\" fill=\"black\" />",
+		"<circle cx=\"340\" cy=\"700\" r=\"10\" fill=\"black\" />",
+		"<circle cx=\"430\" cy=\"460\" r=\"10\" fill=\"black\" />",
+		"<circle cx=\"520\" cy=\"520\" r=\"10\" fill=\"black\" />",
+		"<circle cx=\"610\" cy=\"340\" r=\"10\" fill=\"black\" />",
+		"<circle cx=\"700\" cy=\"390\" r=\"10\" fill=\"black\" />"
+	]);
+}
+
+function buildWireframeTemplate(name) {
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
+		"<!-- Basic page wireframe layout. -->",
+		"",
+		"<!-- Header -->",
+		"<rect x=\"50\" y=\"50\" width=\"750\" height=\"120\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
+		"<text x=\"80\" y=\"125\" font-size=\"36\" fill=\"black\">Header</text>",
+		"",
+		"<!-- Main content -->",
+		"<rect x=\"50\" y=\"220\" width=\"470\" height=\"680\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
+		"<text x=\"80\" y=\"300\" font-size=\"36\" fill=\"black\">Main</text>",
+		"",
+		"<!-- Sidebar -->",
+		"<rect x=\"560\" y=\"220\" width=\"240\" height=\"680\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
+		"<text x=\"600\" y=\"300\" font-size=\"36\" fill=\"black\">Sidebar</text>",
+		"",
+		"<!-- Footer -->",
+		"<rect x=\"50\" y=\"940\" width=\"750\" height=\"110\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
+		"<text x=\"80\" y=\"1010\" font-size=\"36\" fill=\"black\">Footer</text>"
+	]);
+}
+
+function buildClockTemplate(name) {
+	const numbers = [
+		{ text: "12", x: "382", y: "180" },
+		{ text: "1", x: "545", y: "230" },
+		{ text: "2", x: "655", y: "340" },
+		{ text: "3", x: "705", y: "510" },
+		{ text: "4", x: "655", y: "685" },
+		{ text: "5", x: "545", y: "795" },
+		{ text: "6", x: "405", y: "845" },
+		{ text: "7", x: "245", y: "795" },
+		{ text: "8", x: "140", y: "685" },
+		{ text: "9", x: "110", y: "510" },
+		{ text: "10", x: "145", y: "340" },
+		{ text: "11", x: "250", y: "230" }
+	];
+	const lines = [
+		"<!-- Tactile clock face starter. -->",
+		"<!-- The hands use rotation transforms around the clock center. -->",
+		"",
+		"<circle cx=\"425\" cy=\"510\" r=\"310\" stroke=\"black\" stroke-width=\"8\" fill=\"none\" />",
+		"<circle cx=\"425\" cy=\"510\" r=\"12\" fill=\"black\" />",
+		"",
+		"<!-- Clock hands -->",
+		"<line x1=\"425\" y1=\"510\" x2=\"425\" y2=\"290\" stroke=\"black\" stroke-width=\"12\" transform=\"rotate(35 425 510)\" />",
+		"<line x1=\"425\" y1=\"510\" x2=\"425\" y2=\"220\" stroke=\"black\" stroke-width=\"8\" transform=\"rotate(300 425 510)\" />",
+		"",
+		"<!-- Clock numbers -->"
+	];
+
+	numbers.forEach((number) => {
+		lines.push(`<text x="${number.x}" y="${number.y}" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">${number.text}</text>`);
+	});
+
+	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", lines);
+}
+
+function buildEmojiTemplate(name) {
+	return buildSvgDocument(name, "0 0 1024 1024", "1024", "1024", [
+		"<!-- Simple smiling face starter. -->",
+		"",
+		"<circle cx=\"512\" cy=\"512\" r=\"420\" stroke=\"black\" stroke-width=\"24\" fill=\"oldLace\" />",
+		"<circle cx=\"360\" cy=\"410\" r=\"48\" fill=\"black\" />",
+		"<circle cx=\"664\" cy=\"410\" r=\"48\" fill=\"black\" />",
+		"<path d=\"M 300 610 C 380 760 644 760 724 610\" style=\"stroke: black; stroke-width: 28; fill: none;\" />"
+	]);
+}
+
+function buildGraphPaperPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" fill="white" stroke="black" stroke-width="3"/><path d="M 34 8 V 112 M 60 8 V 112 M 86 8 V 112 M 8 34 H 112 M 8 60 H 112 M 8 86 H 112" stroke="black" stroke-width="2" fill="none"/></svg>`;
+}
+
+function buildDotGridPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" fill="white" stroke="black" stroke-width="3"/><g fill="black"><circle cx="28" cy="28" r="4"/><circle cx="60" cy="28" r="4"/><circle cx="92" cy="28" r="4"/><circle cx="28" cy="60" r="4"/><circle cx="60" cy="60" r="4"/><circle cx="92" cy="60" r="4"/><circle cx="28" cy="92" r="4"/><circle cx="60" cy="92" r="4"/><circle cx="92" cy="92" r="4"/></g></svg>`;
+}
+
+function buildBrailleHelloPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" rx="8" fill="white" stroke="black" stroke-width="3"/><text x="14" y="70" font-family="Arial, sans-serif" font-size="24" fill="black">⠓⠑⠇⠇⠕</text></svg>`;
+}
+
+function buildBarChartPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><path d="M 18 96 H 102 M 18 96 V 18" stroke="black" stroke-width="4" fill="none"/><rect x="28" y="58" width="12" height="38" fill="#fdf5e6" stroke="black" stroke-width="3"/><rect x="48" y="44" width="12" height="52" fill="#fdf5e6" stroke="black" stroke-width="3"/><rect x="68" y="68" width="12" height="28" fill="#fdf5e6" stroke="black" stroke-width="3"/><rect x="88" y="32" width="12" height="64" fill="#fdf5e6" stroke="black" stroke-width="3"/></svg>`;
+}
+
+function buildLineChartPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><path d="M 18 96 H 102 M 18 96 V 18" stroke="black" stroke-width="4" fill="none"/><polyline points="24,78 40,58 56,66 72,38 88,46 102,26" stroke="black" stroke-width="4" fill="none"/><g fill="black"><circle cx="24" cy="78" r="3"/><circle cx="40" cy="58" r="3"/><circle cx="56" cy="66" r="3"/><circle cx="72" cy="38" r="3"/><circle cx="88" cy="46" r="3"/><circle cx="102" cy="26" r="3"/></g></svg>`;
+}
+
+function buildWireframePreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="100" height="20" fill="none" stroke="black" stroke-width="3"/><rect x="10" y="38" width="58" height="54" fill="none" stroke="black" stroke-width="3"/><rect x="76" y="38" width="34" height="54" fill="none" stroke="black" stroke-width="3"/><rect x="10" y="100" width="100" height="10" fill="none" stroke="black" stroke-width="3"/></svg>`;
+}
+
+function buildClockPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="44" fill="white" stroke="black" stroke-width="4"/><line x1="60" y1="60" x2="60" y2="32" stroke="black" stroke-width="6" transform="rotate(30 60 60)"/><line x1="60" y1="60" x2="60" y2="24" stroke="black" stroke-width="4" transform="rotate(300 60 60)"/><circle cx="60" cy="60" r="4" fill="black"/></svg>`;
+}
+
+function buildEmojiPreview() {
+	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="48" fill="#fdf5e6" stroke="black" stroke-width="4"/><circle cx="42" cy="48" r="5" fill="black"/><circle cx="78" cy="48" r="5" fill="black"/><path d="M 34 72 C 42 86 78 86 86 72" stroke="black" stroke-width="5" fill="none"/></svg>`;
+}
+
 function loadShortcuts() {
 	try {
 		const savedShortcuts = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || "{}");
@@ -1966,13 +2796,12 @@ function loadSettings() {
 		const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
 		return {
 			renderDelay: normalizeRenderDelay(savedSettings.renderDelay),
-			renderSound: Boolean(savedSettings.renderSound)
+			renderSound: Boolean(savedSettings.renderSound),
+			autosave: "autosave" in savedSettings ? Boolean(savedSettings.autosave) : defaultSettings.autosave,
+			autosaveMinutes: normalizeAutosaveMinutes(savedSettings.autosaveMinutes)
 		};
 	} catch (error) {
-		return {
-			renderDelay: 1.5,
-			renderSound: false
-		};
+		return { ...defaultSettings };
 	}
 }
 
@@ -1983,9 +2812,17 @@ function persistSettings() {
 function normalizeRenderDelay(value) {
 	const numericValue = Number(value);
 	if (!Number.isFinite(numericValue)) {
-		return 1.5;
+		return defaultSettings.renderDelay;
 	}
 	return Math.min(5, Math.max(0.1, Number(numericValue.toFixed(1))));
+}
+
+function normalizeAutosaveMinutes(value) {
+	const numericValue = Number(value);
+	if (!Number.isFinite(numericValue)) {
+		return AUTOSAVE_MINUTES_DEFAULT;
+	}
+	return Math.min(30, Math.max(1, Math.round(numericValue)));
 }
 
 function describeShortcut(shortcut) {
@@ -2061,6 +2898,7 @@ function getActiveView() {
 function getOpenDialogId() {
 	const dialogs = [
 		elements.newFileDialog,
+		elements.templateDialog,
 		elements.shapeDialog,
 		elements.jumpDialog,
 		elements.shortcutsDialog,

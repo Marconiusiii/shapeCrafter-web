@@ -7,15 +7,19 @@ shapeCrafter Web is a browser-based SVG editor for BlindSVG. It is built for peo
 shapeCrafter Web gives you a complete browser workflow for working with SVG:
 
 - Start a new file with a filename, viewBox, width, and height
+- Start a new file from a gallery of ready-made templates
+- Choose a size preset for common paper and canvas formats
 - Generate the opening SVG structure automatically, including a title tag
 - Write SVG code in a full text editor
 - Insert SVG elements at the current cursor position
 - Use Quick Add to choose an SVG element from the keyboard without leaving the editor flow
 - Choose whether shape insertion happens instantly or through an attribute prompt
 - Render the SVG in the browser
-- Print or emboss only the SVG graphic from the print view
+- Print or emboss only the SVG graphic from the editor workflow
 - Save files to this browser and reopen them later
-- Rename or delete saved files
+- Save files manually, autosave them while you work, or save a copy with Save As
+- Revert the current file back to the version that was loaded at the start of the session
+- Rename, duplicate, or delete saved files
 - Download SVG files directly to your computer
 - Export raster files as PNG, JPG, or WEBP
 - Choose raster export units in pixels, inches, centimeters, millimeters, points, or percent
@@ -29,21 +33,25 @@ shapeCrafter Web is designed for people actively learning from BlindSVG and buil
 
 ## How To Use It
 
-1. Choose New File.
-2. Enter a filename, viewBox, width, and height.
+1. Choose New File or Start File from Template.
+2. Enter a filename and choose a size preset, or pick a starter template.
 3. Write SVG code in the editor or insert shapes from the SVG Element Menu.
-4. Save your work to the browser whenever you want to keep it.
-5. Use Render SVG to switch to the rendered image.
-6. From the print view, return to code, print or emboss the graphic, save the SVG, or export a raster file.
+4. Save your work manually or let Autosave keep it current in the browser.
+5. Use Render SVG to update the rendered image, or turn on Live View in Editor Settings.
+6. Use File Actions to print or emboss the graphic, save the SVG, export a raster file, save a copy, or revert the session.
 
 ## Current Features
 
 - Single-page editor and render workflow
+- Starter template gallery with tactile and beginner-friendly SVG examples
 - New file dialog with starter SVG generation
+- Size presets for common paper and canvas formats
 - SVG Element Menu for quick shape insertion
 - Quick Add dialog opened by keyboard shortcut
 - Optional shape attribute dialog for guided insertion
-- Saved Files table with open, rename, and delete actions
+- Saved Files table with an open button plus per-file Rename, Duplicate, and Delete actions menus
+- Autosave with an adjustable save interval
+- Save As and session-based Revert actions in the editor
 - SVG Code Reference with element, styling, transform, gradient, advanced, and font guidance
 - Fonts Reference with browser-safe font suggestions and braille font downloads
 - Parser error reporting with line-aware feedback and Jump to Error
@@ -64,6 +72,7 @@ The built-in SVG Code Reference includes help for:
 - Gradients
 - Advanced SVG topics such as groups, use, defs, clip paths, masks, ids, desc, and comments
 - Fonts, including common browser-safe font families and links to Braille29 and Braille36 US
+- Template starters for graph paper, dot grids, braille text, bar charts, line charts, layout wireframes, a tactile clock face, and a simple emoji face
 
 ## Keyboard Workflow
 
@@ -78,7 +87,7 @@ These shortcuts can be changed from the Keyboard Shortcuts dialog on the home sc
 
 ## Printing And Embossing
 
-shapeCrafter Web is built so the print view focuses on the rendered SVG itself. The goal is to make printing behave like opening the SVG directly in the browser and sending only the graphic to the printer or embosser.
+shapeCrafter Web is built so printing focuses on the rendered SVG itself. The goal is to make printing behave like opening the SVG directly in the browser and sending only the graphic to the printer or embosser.
 
 ## Accessibility Goals
 

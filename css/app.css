@@ -197,7 +197,9 @@ dialog {
 
 #liveViewHelp,
 #renderDelayHelp,
-#renderSoundHelp {
+#renderSoundHelp,
+#autosaveHelp,
+#autosaveMinutesHelp {
 	margin: -0.25rem 0 0;
 	color: #314550;
 }
@@ -231,6 +233,10 @@ dialog {
 
 #currentFileHeading {
 	margin: 0;
+}
+
+#fileMetaGroup {
+	display: block;
 }
 
 #fileMeta,
@@ -366,6 +372,10 @@ select {
 	border: 2px solid #111;
 	border-radius: 6px;
 	background: #fcfcfc;
+}
+
+input[readonly] {
+	background: #eef2f5;
 }
 
 textarea {
@@ -593,6 +603,43 @@ body.is-fullscreen-graphic {
 	margin-top: 0;
 }
 
+.template-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+	gap: 1rem;
+}
+
+.template-card {
+	display: grid;
+	grid-template-columns: 4.5rem minmax(0, 1fr);
+	gap: 0.85rem;
+	align-items: start;
+	width: 100%;
+	min-height: 8rem;
+	text-align: left;
+}
+
+.template-card__preview {
+	width: 100%;
+	height: auto;
+	border: 1px solid #333;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.template-card__text {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.template-card__title {
+	font-weight: 700;
+}
+
+.template-card__blurb {
+	color: #314550;
+}
+
 #fileTable {
 	width: 100%;
 	margin-top: 1rem;
@@ -617,14 +664,37 @@ body.is-fullscreen-graphic {
 	width: 100%;
 }
 
-.file-actions {
-	display: flex;
-	gap: 0.5rem;
-	flex-wrap: wrap;
+.saved-file-actions {
+	position: relative;
 }
 
-.file-actions button {
-	width: auto;
+.saved-file-actions__button {
+	width: 100%;
+}
+
+.saved-file-actions__menu {
+	position: absolute;
+	inset: auto auto auto 0;
+	z-index: 20;
+	width: min(16rem, calc(100vw - 3rem));
+	margin-top: 0.4rem;
+	padding: 0.75rem;
+	border: 2px solid #111;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.18);
+}
+
+.saved-file-actions__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 0.75rem;
+}
+
+.saved-file-actions__list button {
+	width: 100%;
 }
 
 dialog {
@@ -840,6 +910,8 @@ code {
 	#fileLibraryDetails,
 	#editorSettingsDetails,
 	.primitive-panel details,
+	#svgCodeReferenceDetails,
+	#brailleConverterDetails,
 	#svgCodeReference details,
 	#renderPreviewDetails,
 	textarea,
@@ -858,6 +930,8 @@ code {
 	#fileLibraryDetails[open],
 	#editorSettingsDetails[open],
 	.primitive-panel details[open],
+	#svgCodeReferenceDetails[open],
+	#brailleConverterDetails[open],
 	#svgCodeReference details[open],
 	#renderPreviewDetails[open] {
 		background: #1b2328;
@@ -870,8 +944,11 @@ code {
 	#liveViewHelp,
 	#renderDelayHelp,
 	#renderSoundHelp,
+	#autosaveHelp,
+	#autosaveMinutesHelp,
 	#renderPreviewPlaceholder,
-	#fullscreenRenderPlaceholder {
+	#fullscreenRenderPlaceholder,
+	.template-card__blurb {
 		color: #d7e2e8;
 	}
 
@@ -910,6 +987,17 @@ code {
 		background: #1b2328;
 		border-color: #dbe6ec;
 		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
+	}
+
+	.saved-file-actions__menu {
+		background: #1b2328;
+		border-color: #dbe6ec;
+		box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.45);
+	}
+
+	.template-card__preview {
+		background: #f3f6f8;
+		border-color: #dbe6ec;
 	}
 
 	button:hover,
