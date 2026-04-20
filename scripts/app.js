@@ -5,6 +5,7 @@ const BASE_TITLE = "shapeCrafter - BlindSVG";
 const MESSAGE_TIMEOUT_MS = 5000;
 const MESSAGE_FADE_MS = 240;
 const AUTOSAVE_MINUTES_DEFAULT = 5;
+const TEMPLATE_MANIFEST_PATH = "templates/templates.json";
 const BRAILLE_TABLES = {
 	grade1: "unicode.dis,en-ueb-g1.ctb",
 	grade2: "unicode.dis,en-ueb-g2.ctb",
@@ -129,84 +130,10 @@ const defaultSettings = {
 	autosaveMinutes: AUTOSAVE_MINUTES_DEFAULT
 };
 
-const TEMPLATE_DEFINITIONS = [
-	{
-		id: "graph-paper",
-		name: "Tactile Graph Paper",
-		blurb: "A full-page graph paper starter with evenly spaced vertical and horizontal lines.",
-		fileName: "tactile-graph-paper",
-		sizePreset: "us-letter-portrait",
-		build: buildGraphPaperTemplate,
-		preview: buildGraphPaperPreview
-	},
-	{
-		id: "dot-grid",
-		name: "Tactile Dot Grid",
-		blurb: "A drawing grid made from evenly spaced tactile dots across the page.",
-		fileName: "tactile-dot-grid",
-		sizePreset: "us-letter-portrait",
-		build: buildDotGridTemplate,
-		preview: buildDotGridPreview
-	},
-	{
-		id: "braille-hello",
-		name: "Braille Hello, World",
-		blurb: "A simple braille greeting starter that uses Braille29 text on Letter paper.",
-		fileName: "braille-hello-world",
-		sizePreset: "us-letter-portrait",
-		build: buildBrailleHelloTemplate,
-		preview: buildBrailleHelloPreview
-	},
-	{
-		id: "bar-chart",
-		name: "Bar Chart Starter",
-		blurb: "Simple axes and four ready-made bars for a tactile chart example.",
-		fileName: "bar-chart-starter",
-		sizePreset: "us-letter-portrait",
-		build: buildBarChartTemplate,
-		preview: buildBarChartPreview
-	},
-	{
-		id: "line-chart",
-		name: "Line Chart Starter",
-		blurb: "A sample line chart built with polyline data and simple x and y axes.",
-		fileName: "line-chart-starter",
-		sizePreset: "us-letter-portrait",
-		build: buildLineChartTemplate,
-		preview: buildLineChartPreview
-	},
-	{
-		id: "wireframe",
-		name: "Wireframe Layout",
-		blurb: "A simple page mockup with a header, main area, sidebar, and footer.",
-		fileName: "wireframe-layout",
-		sizePreset: "us-letter-portrait",
-		build: buildWireframeTemplate,
-		preview: buildWireframePreview
-	},
-	{
-		id: "clock-face",
-		name: "Tactile Clock Face",
-		blurb: "A clock face with rotated hands and tactile numbers sized for Letter paper.",
-		fileName: "tactile-clock-face",
-		sizePreset: "us-letter-portrait",
-		build: buildClockTemplate,
-		preview: buildClockPreview
-	},
-	{
-		id: "emoji-face",
-		name: "Smiling Emoji Face",
-		blurb: "A simple round face starter with eyes and a smiling mouth.",
-		fileName: "smiling-emoji-face",
-		sizePreset: "icon-1024",
-		build: buildEmojiTemplate,
-		preview: buildEmojiPreview
-	}
-];
-
 const state = {
 	currentFileId: "",
 	files: [],
+	templates: [],
 	currentErrors: [],
 	currentSessionSnapshotContent: "",
 	currentSessionSnapshotAt: "",
@@ -220,6 +147,7 @@ const state = {
 	shortcuts: loadShortcuts(),
 	settings: loadSettings(),
 	autosaveTimeoutId: 0,
+	templateLoadPromise: null,
 	toastTimeoutId: 0,
 	toastFadeTimeoutId: 0,
 	editorAnnouncementTimeoutId: 0,
@@ -603,7 +531,6 @@ window.addEventListener("afterprint", () => {
 initPrimitiveList();
 initPrimitiveSelect();
 initQuickAddList();
-initTemplateGrid();
 updateShortcutModifierLabels();
 initBrailleConverter();
 renderFileList();
@@ -611,6 +538,12 @@ setActiveView("home");
 syncAttributePromptToggles(elements.attributePromptToggle.checked);
 syncSettingsInputs();
 updateRenderButtonVisibility();
+syncRenderSoundAvailability();
+void initializeApp();
+
+async function initializeApp() {
+	await initTemplateGrid();
+}
 
 function openShortcutsDialog() {
 	syncShortcutInputs();
@@ -650,6 +583,7 @@ function applySizePreset(presetId) {
 
 function handleLiveViewChange() {
 	updateRenderButtonVisibility();
+	syncRenderSoundAvailability();
 	if (elements.liveViewToggle.checked) {
 		clearRenderErrors();
 		clearInlineRenderErrors();
@@ -665,8 +599,8 @@ function updateRenderButtonVisibility() {
 }
 
 function handleRenderDelayChange() {
-	state.settings.renderDelay = Number(elements.renderDelayInput.value);
-	updateRenderDelayValue();
+	state.settings.renderDelay = normalizeRenderDelay(elements.renderDelayInput.value);
+	elements.renderDelayInput.value = String(state.settings.renderDelay);
 	persistSettings();
 }
 
@@ -689,7 +623,6 @@ function handleAutosaveToggleChange() {
 function handleAutosaveMinutesChange() {
 	state.settings.autosaveMinutes = normalizeAutosaveMinutes(elements.autosaveMinutesInput.value);
 	elements.autosaveMinutesInput.value = String(state.settings.autosaveMinutes);
-	updateAutosaveMinutesValue();
 	persistSettings();
 	scheduleAutosave();
 }
@@ -714,22 +647,15 @@ function scheduleAutosave() {
 
 function syncSettingsInputs() {
 	elements.renderDelayInput.value = String(state.settings.renderDelay);
-	updateRenderDelayValue();
 	elements.renderSoundToggle.checked = state.settings.renderSound;
 	elements.autosaveToggle.checked = state.settings.autosave;
 	elements.autosaveMinutesInput.value = String(state.settings.autosaveMinutes);
 	elements.autosaveMinutesInput.disabled = !state.settings.autosave;
-	updateAutosaveMinutesValue();
+	syncRenderSoundAvailability();
 }
 
-function updateRenderDelayValue() {
-	elements.renderDelayInput.setAttribute("aria-valuetext", `${Number(state.settings.renderDelay).toFixed(1)} seconds`);
-}
-
-function updateAutosaveMinutesValue() {
-	const minutes = Number(state.settings.autosaveMinutes);
-	const label = minutes === 1 ? "1 minute" : `${minutes} minutes`;
-	elements.autosaveMinutesInput.setAttribute("aria-valuetext", label);
+function syncRenderSoundAvailability() {
+	elements.renderSoundToggle.disabled = elements.liveViewToggle.checked;
 }
 
 function initBrailleConverter() {
@@ -921,24 +847,34 @@ function initQuickAddList() {
 	elements.quickAddList.appendChild(fragment);
 }
 
-function initTemplateGrid() {
+async function initTemplateGrid() {
+	elements.templateGrid.replaceChildren(buildTemplateGridMessage("Loading starter templates."));
+	let templates = [];
+	try {
+		templates = await loadTemplateManifest();
+	} catch (error) {
+		elements.templateGrid.replaceChildren(buildTemplateGridMessage("Starter templates are unavailable right now."));
+		setStatus("Starter templates could not be loaded.");
+		return;
+	}
+
 	const fragment = document.createDocumentFragment();
 
-	TEMPLATE_DEFINITIONS.forEach((template) => {
+	templates.forEach((template) => {
 		const button = document.createElement("button");
 		button.type = "button";
 		button.className = "template-card";
 		button.addEventListener("click", () => {
 			closeDialog(elements.templateDialog, { restoreFocus: false });
-			requestAnimationFrame(() => {
-				startFileFromTemplate(template.id);
+			requestAnimationFrame(async () => {
+				await startFileFromTemplate(template.id);
 			});
 		});
 
 		const preview = document.createElement("img");
 		preview.className = "template-card__preview";
 		preview.alt = "";
-		preview.src = buildTemplatePreviewDataUri(template.preview());
+		preview.src = template.previewPath || template.path;
 
 		const textWrap = document.createElement("span");
 		textWrap.className = "template-card__text";
@@ -959,23 +895,69 @@ function initTemplateGrid() {
 	elements.templateGrid.replaceChildren(fragment);
 }
 
-function buildTemplatePreviewDataUri(svgMarkup) {
-	return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgMarkup)}`;
+function buildTemplateGridMessage(message) {
+	const text = document.createElement("p");
+	text.textContent = message;
+	return text;
 }
 
-function startFileFromTemplate(templateId) {
-	const template = TEMPLATE_DEFINITIONS.find((item) => item.id === templateId);
+async function loadTemplateManifest() {
+	if (state.templates.length) {
+		return state.templates;
+	}
+
+	if (!state.templateLoadPromise) {
+		state.templateLoadPromise = fetch(TEMPLATE_MANIFEST_PATH)
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error("Template manifest could not be loaded.");
+				}
+				return response.json();
+			})
+			.then((manifest) => {
+				if (!Array.isArray(manifest)) {
+					throw new Error("Template manifest is not in the expected format.");
+				}
+				state.templates = manifest;
+				return state.templates;
+			})
+			.catch((error) => {
+				state.templateLoadPromise = null;
+				throw error;
+			});
+	}
+
+	return state.templateLoadPromise;
+}
+
+async function startFileFromTemplate(templateId) {
+	const templates = await loadTemplateManifest();
+	const template = templates.find((item) => item.id === templateId);
 	if (!template) {
+		setStatus("That starter template could not be found.");
 		return;
 	}
 
 	const preset = SIZE_PRESETS[template.sizePreset];
+	if (!preset) {
+		setStatus("That starter template is missing its size preset.");
+		return;
+	}
+
+	let templateSource = "";
+	try {
+		templateSource = await loadTemplateSource(template.path);
+	} catch (error) {
+		setStatus("That starter template could not be opened.");
+		return;
+	}
+
 	const file = createFileRecord(
 		template.fileName,
 		preset.viewBox,
 		preset.width,
 		preset.height,
-		template.build(`${sanitizeFilename(template.fileName)}.svg`),
+		templateSource,
 		{ sizePreset: template.sizePreset }
 	);
 
@@ -983,6 +965,14 @@ function startFileFromTemplate(templateId) {
 	state.files = upsertFile(file);
 	persistFiles();
 	openEditorFile(file, { statusMessage: `Created ${file.name} from template.` });
+}
+
+async function loadTemplateSource(path) {
+	const response = await fetch(path);
+	if (!response.ok) {
+		throw new Error("Template source could not be loaded.");
+	}
+	return response.text();
 }
 
 function insertPrimitiveIntoEditor(primitive) {
@@ -1606,12 +1596,12 @@ function renderSvg(options = {}) {
 	const doc = parser.parseFromString(svgSource, "image/svg+xml");
 	const parserErrors = extractParserErrorsFromDocument(doc);
 	if (parserErrors.length) {
-		return handleRenderFailure(parserErrors, suppressErrors);
+		return handleRenderFailure(parserErrors, suppressErrors, renderSource);
 	}
 
 	const parserErrorNode = findParserErrorNode(doc);
 	if (parserErrorNode) {
-		return handleRenderFailure([], suppressErrors);
+		return handleRenderFailure([], suppressErrors, renderSource);
 	}
 
 	const svg = doc.documentElement;
@@ -1623,7 +1613,7 @@ function renderSvg(options = {}) {
 				rawMessage: "The document must begin with a valid <svg> root element.",
 				plainLanguage: "Make sure the file starts with an opening <svg> tag and that it is written correctly."
 			}
-		], suppressErrors);
+		], suppressErrors, renderSource);
 	}
 
 	sanitizeSvg(svg);
@@ -1631,7 +1621,9 @@ function renderSvg(options = {}) {
 	clearRenderErrors();
 	clearInlineRenderErrors();
 	updateRenderedOutput(svg);
-	playRenderSound();
+	if (shouldPlayManualRenderSound(renderSource)) {
+		playManualRenderSuccessSound();
+	}
 	if (announceSuccess && renderSource !== "live") {
 		setStatus("SVG rendered.");
 		if (renderSource === "manual") {
@@ -1698,7 +1690,11 @@ function downloadSvg() {
 	setStatus("SVG download started.");
 }
 
-function handleRenderFailure(errors, suppressErrors) {
+function handleRenderFailure(errors, suppressErrors, renderSource) {
+	if (shouldPlayManualRenderSound(renderSource)) {
+		playManualRenderErrorSound();
+	}
+
 	if (suppressErrors) {
 		presentInlineRenderErrors(errors);
 		return false;
@@ -2022,14 +2018,14 @@ function closeFileRowMenuIfOutside(event) {
 	closeFileRowMenu();
 }
 
-function playRenderSound() {
-	if (!state.settings.renderSound) {
-		return;
-	}
+function shouldPlayManualRenderSound(renderSource) {
+	return state.settings.renderSound && renderSource === "manual" && !elements.liveViewToggle.checked;
+}
 
+function ensureAudioContext() {
 	const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
 	if (!AudioContextConstructor) {
-		return;
+		return null;
 	}
 
 	if (!state.audioContext) {
@@ -2041,18 +2037,27 @@ function playRenderSound() {
 		context.resume().catch(() => {});
 	}
 
+	return context;
+}
+
+function playManualRenderSuccessSound() {
+	const context = ensureAudioContext();
+	if (!context) {
+		return;
+	}
+
 	const now = context.currentTime;
 	const masterGain = context.createGain();
 	const filter = context.createBiquadFilter();
-	const chordFrequencies = [261.63, 329.63, 392];
-	const duration = 0.9;
+	const chordFrequencies = [293.66, 369.99, 440];
+	const duration = 0.48;
 
 	filter.type = "lowpass";
-	filter.frequency.setValueAtTime(1400, now);
-	filter.Q.setValueAtTime(0.6, now);
+	filter.frequency.setValueAtTime(1600, now);
+	filter.Q.setValueAtTime(0.8, now);
 	masterGain.gain.setValueAtTime(0.0001, now);
-	masterGain.gain.linearRampToValueAtTime(0.028, now + 0.18);
-	masterGain.gain.linearRampToValueAtTime(0.018, now + 0.45);
+	masterGain.gain.linearRampToValueAtTime(0.032, now + 0.08);
+	masterGain.gain.linearRampToValueAtTime(0.016, now + 0.22);
 	masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 	filter.connect(masterGain);
 	masterGain.connect(context.destination);
@@ -2062,12 +2067,37 @@ function playRenderSound() {
 		const voiceGain = context.createGain();
 		oscillator.type = index === 0 ? "triangle" : "sine";
 		oscillator.frequency.setValueAtTime(frequency, now);
-		voiceGain.gain.setValueAtTime(index === 0 ? 0.9 : 0.6, now);
+		voiceGain.gain.setValueAtTime(index === 0 ? 0.95 : 0.62, now);
 		oscillator.connect(voiceGain);
 		voiceGain.connect(filter);
 		oscillator.start(now);
 		oscillator.stop(now + duration);
 	});
+}
+
+function playManualRenderErrorSound() {
+	const context = ensureAudioContext();
+	if (!context) {
+		return;
+	}
+
+	const now = context.currentTime;
+	const masterGain = context.createGain();
+	const duration = 0.34;
+
+	masterGain.gain.setValueAtTime(0.0001, now);
+	masterGain.gain.linearRampToValueAtTime(0.028, now + 0.04);
+	masterGain.gain.linearRampToValueAtTime(0.016, now + 0.12);
+	masterGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+	masterGain.connect(context.destination);
+
+	const oscillator = context.createOscillator();
+	oscillator.type = "sawtooth";
+	oscillator.frequency.setValueAtTime(220, now);
+	oscillator.frequency.exponentialRampToValueAtTime(164.81, now + duration);
+	oscillator.connect(masterGain);
+	oscillator.start(now);
+	oscillator.stop(now + duration);
 }
 
 function openFullscreenGraphic() {
@@ -2540,215 +2570,6 @@ function mimeToExtension(type) {
 	}
 }
 
-function buildSvgDocument(name, viewBox, width, height, bodyLines) {
-	return [
-		`<svg viewBox="${viewBox}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`,
-		`<title>${escapeXml(name.replace(/\.svg$/i, ""))}</title>`,
-		"",
-		...bodyLines,
-		"",
-		"</svg>"
-	].join("\n");
-}
-
-function buildGraphPaperTemplate(name) {
-	const lines = [
-		"<!-- Tactile graph paper starter for a Letter-size page. -->",
-		"<!-- Change the spacing or stroke weight to match your embossing needs. -->",
-		"",
-		"<rect x=\"50\" y=\"50\" width=\"750\" height=\"1000\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
-		"",
-		"<!-- Vertical grid lines -->"
-	];
-
-	for (let x = 100; x < 800; x += 50) {
-		lines.push(`<line x1="${x}" y1="50" x2="${x}" y2="1050" stroke="black" stroke-width="2" />`);
-	}
-
-	lines.push("", "<!-- Horizontal grid lines -->");
-
-	for (let y = 100; y < 1050; y += 50) {
-		lines.push(`<line x1="50" y1="${y}" x2="800" y2="${y}" stroke="black" stroke-width="2" />`);
-	}
-
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", lines);
-}
-
-function buildDotGridTemplate(name) {
-	const lines = [
-		"<!-- Tactile dot grid starter for freeform drawing and point plotting. -->",
-		"",
-		"<!-- Border -->",
-		"<rect x=\"50\" y=\"50\" width=\"750\" height=\"1000\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
-		"",
-		"<!-- Dot grid -->"
-	];
-
-	for (let y = 100; y <= 1000; y += 50) {
-		for (let x = 100; x <= 750; x += 50) {
-			lines.push(`<circle cx="${x}" cy="${y}" r="6" fill="black" />`);
-		}
-	}
-
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", lines);
-}
-
-function buildBrailleHelloTemplate(name) {
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
-		"<!-- Braille text starter. -->",
-		"<!-- Braille29 should be installed on the system for this font-family value to render as expected. -->",
-		"",
-		"<text x=\"120\" y=\"300\" font-family=\"Braille29, sans-serif\" font-size=\"72\" fill=\"black\">⠓⠑⠇⠇⠕⠂ ⠺⠕⠗⠇⠙⠖</text>",
-		"",
-		"<!-- Add more braille or print text below this line. -->"
-	]);
-}
-
-function buildBarChartTemplate(name) {
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
-		"<!-- Bar chart starter with simple axes and sample data. -->",
-		"",
-		"<!-- Chart axes -->",
-		"<line x1=\"120\" y1=\"920\" x2=\"720\" y2=\"920\" stroke=\"black\" stroke-width=\"6\" />",
-		"<line x1=\"120\" y1=\"920\" x2=\"120\" y2=\"220\" stroke=\"black\" stroke-width=\"6\" />",
-		"",
-		"<!-- Bars -->",
-		"<rect x=\"180\" y=\"600\" width=\"80\" height=\"320\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
-		"<rect x=\"300\" y=\"480\" width=\"80\" height=\"440\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
-		"<rect x=\"420\" y=\"700\" width=\"80\" height=\"220\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
-		"<rect x=\"540\" y=\"360\" width=\"80\" height=\"560\" stroke=\"black\" stroke-width=\"4\" fill=\"oldLace\" />",
-		"",
-		"<!-- Axis labels -->",
-		"<text x=\"190\" y=\"980\" font-size=\"32\" fill=\"black\">A</text>",
-		"<text x=\"310\" y=\"980\" font-size=\"32\" fill=\"black\">B</text>",
-		"<text x=\"430\" y=\"980\" font-size=\"32\" fill=\"black\">C</text>",
-		"<text x=\"550\" y=\"980\" font-size=\"32\" fill=\"black\">D</text>"
-	]);
-}
-
-function buildLineChartTemplate(name) {
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
-		"<!-- Line chart starter that uses polyline for the data path. -->",
-		"",
-		"<!-- Chart axes -->",
-		"<line x1=\"120\" y1=\"920\" x2=\"720\" y2=\"920\" stroke=\"black\" stroke-width=\"6\" />",
-		"<line x1=\"120\" y1=\"920\" x2=\"120\" y2=\"220\" stroke=\"black\" stroke-width=\"6\" />",
-		"",
-		"<!-- Data line -->",
-		"<polyline points=\"160,780 250,640 340,700 430,460 520,520 610,340 700,390\" stroke=\"black\" stroke-width=\"6\" fill=\"none\" />",
-		"",
-		"<!-- Data points -->",
-		"<circle cx=\"160\" cy=\"780\" r=\"10\" fill=\"black\" />",
-		"<circle cx=\"250\" cy=\"640\" r=\"10\" fill=\"black\" />",
-		"<circle cx=\"340\" cy=\"700\" r=\"10\" fill=\"black\" />",
-		"<circle cx=\"430\" cy=\"460\" r=\"10\" fill=\"black\" />",
-		"<circle cx=\"520\" cy=\"520\" r=\"10\" fill=\"black\" />",
-		"<circle cx=\"610\" cy=\"340\" r=\"10\" fill=\"black\" />",
-		"<circle cx=\"700\" cy=\"390\" r=\"10\" fill=\"black\" />"
-	]);
-}
-
-function buildWireframeTemplate(name) {
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", [
-		"<!-- Basic page wireframe layout. -->",
-		"",
-		"<!-- Header -->",
-		"<rect x=\"50\" y=\"50\" width=\"750\" height=\"120\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
-		"<text x=\"80\" y=\"125\" font-size=\"36\" fill=\"black\">Header</text>",
-		"",
-		"<!-- Main content -->",
-		"<rect x=\"50\" y=\"220\" width=\"470\" height=\"680\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
-		"<text x=\"80\" y=\"300\" font-size=\"36\" fill=\"black\">Main</text>",
-		"",
-		"<!-- Sidebar -->",
-		"<rect x=\"560\" y=\"220\" width=\"240\" height=\"680\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
-		"<text x=\"600\" y=\"300\" font-size=\"36\" fill=\"black\">Sidebar</text>",
-		"",
-		"<!-- Footer -->",
-		"<rect x=\"50\" y=\"940\" width=\"750\" height=\"110\" stroke=\"black\" stroke-width=\"4\" fill=\"none\" />",
-		"<text x=\"80\" y=\"1010\" font-size=\"36\" fill=\"black\">Footer</text>"
-	]);
-}
-
-function buildClockTemplate(name) {
-	const numbers = [
-		{ text: "12", x: "382", y: "180" },
-		{ text: "1", x: "545", y: "230" },
-		{ text: "2", x: "655", y: "340" },
-		{ text: "3", x: "705", y: "510" },
-		{ text: "4", x: "655", y: "685" },
-		{ text: "5", x: "545", y: "795" },
-		{ text: "6", x: "405", y: "845" },
-		{ text: "7", x: "245", y: "795" },
-		{ text: "8", x: "140", y: "685" },
-		{ text: "9", x: "110", y: "510" },
-		{ text: "10", x: "145", y: "340" },
-		{ text: "11", x: "250", y: "230" }
-	];
-	const lines = [
-		"<!-- Tactile clock face starter. -->",
-		"<!-- The hands use rotation transforms around the clock center. -->",
-		"",
-		"<circle cx=\"425\" cy=\"510\" r=\"310\" stroke=\"black\" stroke-width=\"8\" fill=\"none\" />",
-		"<circle cx=\"425\" cy=\"510\" r=\"12\" fill=\"black\" />",
-		"",
-		"<!-- Clock hands -->",
-		"<line x1=\"425\" y1=\"510\" x2=\"425\" y2=\"290\" stroke=\"black\" stroke-width=\"12\" transform=\"rotate(35 425 510)\" />",
-		"<line x1=\"425\" y1=\"510\" x2=\"425\" y2=\"220\" stroke=\"black\" stroke-width=\"8\" transform=\"rotate(300 425 510)\" />",
-		"",
-		"<!-- Clock numbers -->"
-	];
-
-	numbers.forEach((number) => {
-		lines.push(`<text x="${number.x}" y="${number.y}" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">${number.text}</text>`);
-	});
-
-	return buildSvgDocument(name, "0 0 850 1100", "850", "1100", lines);
-}
-
-function buildEmojiTemplate(name) {
-	return buildSvgDocument(name, "0 0 1024 1024", "1024", "1024", [
-		"<!-- Simple smiling face starter. -->",
-		"",
-		"<circle cx=\"512\" cy=\"512\" r=\"420\" stroke=\"black\" stroke-width=\"24\" fill=\"oldLace\" />",
-		"<circle cx=\"360\" cy=\"410\" r=\"48\" fill=\"black\" />",
-		"<circle cx=\"664\" cy=\"410\" r=\"48\" fill=\"black\" />",
-		"<path d=\"M 300 610 C 380 760 644 760 724 610\" style=\"stroke: black; stroke-width: 28; fill: none;\" />"
-	]);
-}
-
-function buildGraphPaperPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" fill="white" stroke="black" stroke-width="3"/><path d="M 34 8 V 112 M 60 8 V 112 M 86 8 V 112 M 8 34 H 112 M 8 60 H 112 M 8 86 H 112" stroke="black" stroke-width="2" fill="none"/></svg>`;
-}
-
-function buildDotGridPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" fill="white" stroke="black" stroke-width="3"/><g fill="black"><circle cx="28" cy="28" r="4"/><circle cx="60" cy="28" r="4"/><circle cx="92" cy="28" r="4"/><circle cx="28" cy="60" r="4"/><circle cx="60" cy="60" r="4"/><circle cx="92" cy="60" r="4"/><circle cx="28" cy="92" r="4"/><circle cx="60" cy="92" r="4"/><circle cx="92" cy="92" r="4"/></g></svg>`;
-}
-
-function buildBrailleHelloPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" rx="8" fill="white" stroke="black" stroke-width="3"/><text x="14" y="70" font-family="Arial, sans-serif" font-size="24" fill="black">⠓⠑⠇⠇⠕</text></svg>`;
-}
-
-function buildBarChartPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><path d="M 18 96 H 102 M 18 96 V 18" stroke="black" stroke-width="4" fill="none"/><rect x="28" y="58" width="12" height="38" fill="#fdf5e6" stroke="black" stroke-width="3"/><rect x="48" y="44" width="12" height="52" fill="#fdf5e6" stroke="black" stroke-width="3"/><rect x="68" y="68" width="12" height="28" fill="#fdf5e6" stroke="black" stroke-width="3"/><rect x="88" y="32" width="12" height="64" fill="#fdf5e6" stroke="black" stroke-width="3"/></svg>`;
-}
-
-function buildLineChartPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><path d="M 18 96 H 102 M 18 96 V 18" stroke="black" stroke-width="4" fill="none"/><polyline points="24,78 40,58 56,66 72,38 88,46 102,26" stroke="black" stroke-width="4" fill="none"/><g fill="black"><circle cx="24" cy="78" r="3"/><circle cx="40" cy="58" r="3"/><circle cx="56" cy="66" r="3"/><circle cx="72" cy="38" r="3"/><circle cx="88" cy="46" r="3"/><circle cx="102" cy="26" r="3"/></g></svg>`;
-}
-
-function buildWireframePreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="100" height="20" fill="none" stroke="black" stroke-width="3"/><rect x="10" y="38" width="58" height="54" fill="none" stroke="black" stroke-width="3"/><rect x="76" y="38" width="34" height="54" fill="none" stroke="black" stroke-width="3"/><rect x="10" y="100" width="100" height="10" fill="none" stroke="black" stroke-width="3"/></svg>`;
-}
-
-function buildClockPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="44" fill="white" stroke="black" stroke-width="4"/><line x1="60" y1="60" x2="60" y2="32" stroke="black" stroke-width="6" transform="rotate(30 60 60)"/><line x1="60" y1="60" x2="60" y2="24" stroke="black" stroke-width="4" transform="rotate(300 60 60)"/><circle cx="60" cy="60" r="4" fill="black"/></svg>`;
-}
-
-function buildEmojiPreview() {
-	return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="48" fill="#fdf5e6" stroke="black" stroke-width="4"/><circle cx="42" cy="48" r="5" fill="black"/><circle cx="78" cy="48" r="5" fill="black"/><path d="M 34 72 C 42 86 78 86 86 72" stroke="black" stroke-width="5" fill="none"/></svg>`;
-}
-
 function loadShortcuts() {
 	try {
 		const savedShortcuts = JSON.parse(localStorage.getItem(SHORTCUTS_KEY) || "{}");
@@ -2814,7 +2635,7 @@ function normalizeRenderDelay(value) {
 	if (!Number.isFinite(numericValue)) {
 		return defaultSettings.renderDelay;
 	}
-	return Math.min(5, Math.max(0.1, Number(numericValue.toFixed(1))));
+	return Math.min(3, Math.max(0.1, Number(numericValue.toFixed(1))));
 }
 
 function normalizeAutosaveMinutes(value) {

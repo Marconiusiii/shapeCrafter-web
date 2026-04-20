@@ -1,0 +1,22 @@
+<svg viewBox="0 0 850 1100" width="850" height="1100" xmlns="http://www.w3.org/2000/svg">
+<title>bar-chart-starter</title>
+
+<!-- Bar chart starter with simple axes and sample data. -->
+
+<!-- Chart axes -->
+<line x1="120" y1="920" x2="720" y2="920" stroke="black" stroke-width="6" />
+<line x1="120" y1="920" x2="120" y2="220" stroke="black" stroke-width="6" />
+
+<!-- Bars -->
+<rect x="180" y="600" width="80" height="320" stroke="black" stroke-width="4" fill="oldLace" />
+<rect x="300" y="480" width="80" height="440" stroke="black" stroke-width="4" fill="oldLace" />
+<rect x="420" y="700" width="80" height="220" stroke="black" stroke-width="4" fill="oldLace" />
+<rect x="540" y="360" width="80" height="560" stroke="black" stroke-width="4" fill="oldLace" />
+
+<!-- Axis labels -->
+<text x="190" y="980" font-size="32" fill="black">A</text>
+<text x="310" y="980" font-size="32" fill="black">B</text>
+<text x="430" y="980" font-size="32" fill="black">C</text>
+<text x="550" y="980" font-size="32" fill="black">D</text>
+
+</svg>

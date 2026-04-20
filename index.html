@@ -114,14 +114,14 @@
 <p id="liveViewHelp">Live View updates the rendered graphic automatically a moment after you stop typing.</p>
 <div class="slider-row">
 <label for="renderDelayInput">Render Delay</label>
-<input type="range" id="renderDelayInput" min="0.1" max="5.0" step="0.1" value="1.5" aria-valuetext="1.5 seconds">
+<input type="number" id="renderDelayInput" min="0.1" max="3.0" step="0.1" value="1.5" inputmode="decimal">
 </div>
 <p id="renderDelayHelp">Adjust how long shapeCrafter waits before Live View updates the rendered graphic.</p>
 <div class="toggle-row">
 <input type="checkbox" id="renderSoundToggle">
 <label for="renderSoundToggle">Render Sound</label>
 </div>
-<p id="renderSoundHelp">Play a subtle sound when the rendered graphic updates.</p>
+<p id="renderSoundHelp">Play a success or error sound after pressing Render SVG while Live View is off.</p>
 <div class="toggle-row">
 <input type="checkbox" id="autosaveToggle" checked>
 <label for="autosaveToggle">Autosave</label>
@@ -129,7 +129,7 @@
 <p id="autosaveHelp">Autosave keeps the current file saved in the browser while you work.</p>
 <div class="slider-row">
 <label for="autosaveMinutesInput">Autosave Interval</label>
-<input type="range" id="autosaveMinutesInput" min="1" max="30" step="1" value="5" aria-valuetext="5 minutes">
+<input type="number" id="autosaveMinutesInput" min="1" max="30" step="1" value="5" inputmode="numeric">
 </div>
 <p id="autosaveMinutesHelp">Adjust how many minutes shapeCrafter waits before autosaving your changes.</p>
 </div>

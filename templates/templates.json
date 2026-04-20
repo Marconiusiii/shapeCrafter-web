@@ -1,0 +1,66 @@
+[
+	{
+		"id": "graph-paper",
+		"name": "Tactile Graph Paper",
+		"blurb": "A full-page graph paper starter with evenly spaced vertical and horizontal lines.",
+		"fileName": "tactile-graph-paper",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/tactile-graph-paper.svg"
+	},
+	{
+		"id": "dot-grid",
+		"name": "Tactile Dot Grid",
+		"blurb": "A drawing grid made from evenly spaced tactile dots across the page.",
+		"fileName": "tactile-dot-grid",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/tactile-dot-grid.svg"
+	},
+	{
+		"id": "braille-hello",
+		"name": "Braille Hello, World",
+		"blurb": "A simple braille greeting starter that uses Braille29 text on Letter paper.",
+		"fileName": "braille-hello-world",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/braille-hello-world.svg"
+	},
+	{
+		"id": "bar-chart",
+		"name": "Bar Chart Starter",
+		"blurb": "Simple axes and four ready-made bars for a tactile chart example.",
+		"fileName": "bar-chart-starter",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/bar-chart-starter.svg"
+	},
+	{
+		"id": "line-chart",
+		"name": "Line Chart Starter",
+		"blurb": "A sample line chart built with polyline data and simple x and y axes.",
+		"fileName": "line-chart-starter",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/line-chart-starter.svg"
+	},
+	{
+		"id": "wireframe",
+		"name": "Wireframe Layout",
+		"blurb": "A simple page mockup with a header, main area, sidebar, and footer.",
+		"fileName": "wireframe-layout",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/wireframe-layout.svg"
+	},
+	{
+		"id": "clock-face",
+		"name": "Tactile Clock Face",
+		"blurb": "A clock face with rotated hands and tactile numbers sized for Letter paper.",
+		"fileName": "tactile-clock-face",
+		"sizePreset": "us-letter-portrait",
+		"path": "templates/tactile-clock-face.svg"
+	},
+	{
+		"id": "emoji-face",
+		"name": "Smiling Emoji Face",
+		"blurb": "A simple round face starter with eyes and a smiling mouth.",
+		"fileName": "smiling-emoji-face",
+		"sizePreset": "icon-1024",
+		"path": "templates/smiling-emoji-face.svg"
+	}
+]

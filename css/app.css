@@ -209,6 +209,10 @@ dialog {
 	gap: 0.5rem;
 }
 
+.slider-row input[type="number"] {
+	max-width: 8rem;
+}
+
 #workspaceSection {
 	padding: 1.25rem;
 	background: linear-gradient(180deg, #f3f7fb 0%, #e3eaf1 100%);

@@ -18,6 +18,7 @@ shapeCrafter Web gives you a complete browser workflow for working with SVG:
 - Print or emboss only the SVG graphic from the editor workflow
 - Save files to this browser and reopen them later
 - Save files manually, autosave them while you work, or save a copy with Save As
+- Adjust Live View render delay and autosave timing with standard number inputs
 - Revert the current file back to the version that was loaded at the start of the session
 - Rename, duplicate, or delete saved files
 - Download SVG files directly to your computer
@@ -44,6 +45,7 @@ shapeCrafter Web is designed for people actively learning from BlindSVG and buil
 
 - Single-page editor and render workflow
 - Starter template gallery with tactile and beginner-friendly SVG examples
+- Starter templates stored as separate SVG files with a small manifest for easier editing
 - New file dialog with starter SVG generation
 - Size presets for common paper and canvas formats
 - SVG Element Menu for quick shape insertion
@@ -51,6 +53,7 @@ shapeCrafter Web is designed for people actively learning from BlindSVG and buil
 - Optional shape attribute dialog for guided insertion
 - Saved Files table with an open button plus per-file Rename, Duplicate, and Delete actions menus
 - Autosave with an adjustable save interval
+- Manual Render Sound with separate success and error feedback while Live View is off
 - Save As and session-based Revert actions in the editor
 - SVG Code Reference with element, styling, transform, gradient, advanced, and font guidance
 - Fonts Reference with browser-safe font suggestions and braille font downloads
