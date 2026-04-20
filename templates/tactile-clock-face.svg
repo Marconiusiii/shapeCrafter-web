@@ -4,25 +4,25 @@
 <!-- Tactile clock face starter. -->
 <!-- The hands use rotation transforms around the clock center. -->
 
-<circle cx="425" cy="510" r="310" stroke="black" stroke-width="8" fill="none" />
-<circle cx="425" cy="510" r="12" fill="black" />
+<circle id="clockFace" cx="425" cy="510" r="310" stroke="black" stroke-width="8" fill="none" />
+<circle id="clockCenter" cx="425" cy="510" r="12" fill="black" />
 
 <!-- Clock hands -->
-<line x1="425" y1="510" x2="425" y2="290" stroke="black" stroke-width="12" transform="rotate(35 425 510)" />
-<line x1="425" y1="510" x2="425" y2="220" stroke="black" stroke-width="8" transform="rotate(300 425 510)" />
+<line id="hourHand" x1="425" y1="510" x2="425" y2="290" stroke="black" stroke-width="12" transform="rotate(35 425 510)" />
+<line id="minuteHand" x1="425" y1="510" x2="425" y2="220" stroke="black" stroke-width="8" transform="rotate(300 425 510)" />
 
 <!-- Clock numbers -->
-<text x="382" y="180" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">12</text>
-<text x="545" y="230" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">1</text>
-<text x="655" y="340" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">2</text>
-<text x="705" y="510" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">3</text>
-<text x="655" y="685" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">4</text>
-<text x="545" y="795" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">5</text>
-<text x="405" y="845" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">6</text>
-<text x="245" y="795" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">7</text>
-<text x="140" y="685" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">8</text>
-<text x="110" y="510" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">9</text>
-<text x="145" y="340" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">10</text>
-<text x="250" y="230" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">11</text>
+<text id="number12" x="382" y="180" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">12</text>
+<text id="number1" x="545" y="230" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">1</text>
+<text id="number2" x="655" y="340" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">2</text>
+<text id="number3" x="705" y="510" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">3</text>
+<text id="number4" x="655" y="685" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">4</text>
+<text id="number5" x="545" y="795" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">5</text>
+<text id="number6" x="405" y="845" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">6</text>
+<text id="number7" x="245" y="795" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">7</text>
+<text id="number8" x="140" y="685" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">8</text>
+<text id="number9" x="110" y="510" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">9</text>
+<text id="number10" x="145" y="340" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">10</text>
+<text id="number11" x="250" y="230" font-family="Avenir, Arial, sans-serif" font-size="68" fill="black">11</text>
 
 </svg>

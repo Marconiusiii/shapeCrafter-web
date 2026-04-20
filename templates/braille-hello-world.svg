@@ -4,7 +4,7 @@
 <!-- Braille text starter. -->
 <!-- Braille29 should be installed on the system for this font-family value to render as expected. -->
 
-<text x="120" y="300" font-family="Braille29, sans-serif" font-size="72" fill="black">⠓⠑⠇⠇⠕⠂ ⠺⠕⠗⠇⠙⠖</text>
+<text id="helloWorldBrailleText" x="120" y="300" font-family="Braille29, sans-serif" font-size="29" fill="black">⠓⠑⠇⠇⠕⠂ ⠺⠕⠗⠇⠙⠖</text>
 
 <!-- Add more braille or print text below this line. -->
 

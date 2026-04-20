@@ -2135,10 +2135,45 @@ function printRenderedSvg() {
 		return;
 	}
 
-	state.printTarget = elements.fullscreenView.hidden ? "preview" : "fullscreen";
-	document.body.setAttribute("data-print-target", state.printTarget);
-	document.body.classList.add("is-printing-svg");
-	window.print();
+	printSvgDocument(elements.svgEditor.value.trim());
+}
+
+function printSvgDocument(source) {
+	const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+	const url = URL.createObjectURL(blob);
+	const iframe = document.createElement("iframe");
+	let cleanupTimeout = 0;
+
+	function cleanup() {
+		window.clearTimeout(cleanupTimeout);
+		URL.revokeObjectURL(url);
+		iframe.remove();
+	}
+
+	iframe.title = "SVG print document";
+	iframe.style.position = "fixed";
+	iframe.style.right = "0";
+	iframe.style.bottom = "0";
+	iframe.style.width = "0";
+	iframe.style.height = "0";
+	iframe.style.border = "0";
+	iframe.onload = () => {
+		const printWindow = iframe.contentWindow;
+		if (!printWindow) {
+			cleanup();
+			return;
+		}
+
+		printWindow.addEventListener("afterprint", cleanup, { once: true });
+		cleanupTimeout = window.setTimeout(cleanup, 60000);
+		requestAnimationFrame(() => {
+			printWindow.focus();
+			printWindow.print();
+		});
+	};
+
+	iframe.src = url;
+	document.body.appendChild(iframe);
 }
 
 async function exportRaster() {

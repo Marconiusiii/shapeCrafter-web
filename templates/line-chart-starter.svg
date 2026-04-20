@@ -4,19 +4,19 @@
 <!-- Line chart starter that uses polyline for the data path. -->
 
 <!-- Chart axes -->
-<line x1="120" y1="920" x2="720" y2="920" stroke="black" stroke-width="6" />
-<line x1="120" y1="920" x2="120" y2="220" stroke="black" stroke-width="6" />
+<line id="xAxis" x1="120" y1="920" x2="720" y2="920" stroke="black" stroke-width="6" />
+<line id="yAxis" x1="120" y1="920" x2="120" y2="220" stroke="black" stroke-width="6" />
 
 <!-- Data line -->
-<polyline points="160,780 250,640 340,700 430,460 520,520 610,340 700,390" stroke="black" stroke-width="6" fill="none" />
+<polyline id="dataLine" points="160,780 250,640 340,700 430,460 520,520 610,340 700,390" stroke="grey" stroke-width="6" fill="none" />
 
 <!-- Data points -->
-<circle cx="160" cy="780" r="10" fill="black" />
-<circle cx="250" cy="640" r="10" fill="black" />
-<circle cx="340" cy="700" r="10" fill="black" />
-<circle cx="430" cy="460" r="10" fill="black" />
-<circle cx="520" cy="520" r="10" fill="black" />
-<circle cx="610" cy="340" r="10" fill="black" />
-<circle cx="700" cy="390" r="10" fill="black" />
+<circle id="dataPoint1" cx="160" cy="780" r="10" fill="black" />
+<circle id="dataPoint2" cx="250" cy="640" r="10" fill="black" />
+<circle id="dataPoint3" cx="340" cy="700" r="10" fill="black" />
+<circle id="dataPoint4" cx="430" cy="460" r="10" fill="black" />
+<circle id="dataPoint5" cx="520" cy="520" r="10" fill="black" />
+<circle id="dataPoint6" cx="610" cy="340" r="10" fill="black" />
+<circle id="dataPoint7" cx="700" cy="390" r="10" fill="black" />
 
 </svg>

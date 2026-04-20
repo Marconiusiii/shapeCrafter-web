@@ -3,9 +3,9 @@
 
 <!-- Simple smiling face starter. -->
 
-<circle cx="512" cy="512" r="420" stroke="black" stroke-width="24" fill="oldLace" />
-<circle cx="360" cy="410" r="48" fill="black" />
-<circle cx="664" cy="410" r="48" fill="black" />
-<path d="M 300 610 C 380 760 644 760 724 610" style="stroke: black; stroke-width: 28; fill: none;" />
+<circle id="face" cx="512" cy="512" r="420" stroke="black" stroke-width="24" fill="oldLace" />
+<circle id="leftEye" cx="360" cy="410" r="48" fill="black" />
+<circle id="rightEye" cx="664" cy="410" r="48" fill="black" />
+<path id="smile" d="M 300 610 C 380 760 644 760 724 610" style="stroke: black; stroke-width: 28; fill: none;" />
 
 </svg>

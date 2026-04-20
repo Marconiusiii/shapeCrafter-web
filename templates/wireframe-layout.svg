@@ -4,19 +4,19 @@
 <!-- Basic page wireframe layout. -->
 
 <!-- Header -->
-<rect x="50" y="50" width="750" height="120" stroke="black" stroke-width="4" fill="none" />
-<text x="80" y="125" font-size="36" fill="black">Header</text>
+<rect id="headerArea" x="50" y="50" width="750" height="120" stroke="black" stroke-width="4" fill="none" />
+<text id="headerLabel" x="80" y="125" font-size="36" fill="black">Header</text>
 
 <!-- Main content -->
-<rect x="50" y="220" width="470" height="680" stroke="black" stroke-width="4" fill="none" />
-<text x="80" y="300" font-size="36" fill="black">Main</text>
+<rect id="mainArea" x="50" y="220" width="470" height="680" stroke="black" stroke-width="4" fill="none" />
+<text id="mainLabel" x="80" y="300" font-size="36" fill="black">Main</text>
 
 <!-- Sidebar -->
-<rect x="560" y="220" width="240" height="680" stroke="black" stroke-width="4" fill="none" />
-<text x="600" y="300" font-size="36" fill="black">Sidebar</text>
+<rect id="sidebarArea" x="560" y="220" width="240" height="680" stroke="black" stroke-width="4" fill="none" />
+<text id="sidebarLabel" x="600" y="300" font-size="36" fill="black">Sidebar</text>
 
 <!-- Footer -->
-<rect x="50" y="940" width="750" height="110" stroke="black" stroke-width="4" fill="none" />
-<text x="80" y="1010" font-size="36" fill="black">Footer</text>
+<rect id="footerArea" x="50" y="940" width="750" height="110" stroke="black" stroke-width="4" fill="none" />
+<text id="footerLabel" x="80" y="1010" font-size="36" fill="black">Footer</text>
 
 </svg>
