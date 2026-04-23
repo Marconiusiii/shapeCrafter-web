@@ -7,13 +7,13 @@ const MESSAGE_FADE_MS = 240;
 const AUTOSAVE_MINUTES_DEFAULT = 5;
 const TEMPLATE_MANIFEST_PATH = "templates/templates.json";
 const BRAILLE_TABLES = {
-	grade1: "tables/unicode.dis,tables/en-ueb-g1.ctb",
-	grade2: "tables/unicode.dis,tables/en-ueb-g2.ctb",
-	usGrade1: "tables/unicode.dis,tables/en-us-g1.ctb",
-	usGrade2: "tables/unicode.dis,tables/en-us-g2.ctb",
-	britishGrade1: "tables/unicode.dis,tables/en-gb-g1.utb",
-	britishGrade2: "tables/unicode.dis,tables/en-GB-g2.ctb",
-	usMath: "tables/unicode.dis,tables/en-us-mathtext.ctb"
+	grade1: "unicode.dis,en-ueb-g1.ctb",
+	grade2: "unicode.dis,en-ueb-g2.ctb",
+	usGrade1: "unicode.dis,en-us-g1.ctb",
+	usGrade2: "unicode.dis,en-us-g2.ctb",
+	britishGrade1: "unicode.dis,en-gb-g1.utb",
+	britishGrade2: "unicode.dis,en-GB-g2.ctb",
+	usMath: "unicode.dis,en-us-mathtext.ctb"
 };
 
 const SIZE_PRESETS = {
@@ -692,7 +692,7 @@ function initBrailleConverter() {
 }
 
 function getPathFromOrigin(path) {
-	return new URL(path, window.location.href).href;
+	return new URL(path, window.location.href).pathname;
 }
 
 function setBrailleConverterReady(isReady) {
