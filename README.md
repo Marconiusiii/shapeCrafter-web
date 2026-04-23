@@ -1,10 +1,10 @@
-# shapeCrafter Web
+# shapeCrafter
 
-shapeCrafter Web is a browser-based SVG workspace built for BlindSVG. It gives you a place to write SVG code, render the result in the browser, save your files in the browser, export graphics, and print or emboss the finished output without leaving the page.
+shapeCrafter is a browser-based SVG workspace built for BlindSVG. It gives you a place to write SVG code, render the result in the browser, save your files in the browser, export graphics, and print or emboss the finished output without leaving the page.
 
 ## What You Can Do Here
 
-Use shapeCrafter to:
+shapeCrafter gives you a complete place to build, test, save, and output SVG graphics in the browser.
 
 - start a new SVG file from scratch
 - start from a ready-made template
@@ -21,7 +21,7 @@ Use shapeCrafter to:
 
 From the home screen, choose New File if you want to start with a blank SVG document.
 
-The New File dialog lets you enter:
+The New File dialog asks for the basic information needed to build the opening SVG file.
 
 - a filename
 - a size preset
@@ -67,7 +67,7 @@ If Live View is on, the rendered image updates automatically after the delay you
 
 File Actions collects the main file commands into one place.
 
-From File Actions, you can:
+The File Actions menu gives you direct access to the main commands for the current file.
 
 - save the current file
 - save a copy with Save As
@@ -92,7 +92,7 @@ Duplicate creates a new copy of the file and adds “copy” to the filename so 
 
 Export Raster lets you convert the current SVG into a bitmap image.
 
-You can choose:
+The Export Raster dialog lets you choose the settings for the output file.
 
 - the file type
 - the output units
@@ -113,7 +113,7 @@ When you choose Print/Emboss, the goal is to match the experience of opening the
 
 The SVG Code Reference is built into the editor so you can keep working without leaving the page.
 
-It includes quick reference material for:
+The reference section covers the main parts of SVG you are likely to need while building a file.
 
 - basic shapes
 - path commands
@@ -143,7 +143,7 @@ Braille29 should be used at `29pt`, and Braille36 US should be used at `36pt`.
 
 ## Keyboard Shortcuts
 
-shapeCrafter includes editable keyboard shortcuts for:
+shapeCrafter includes editable keyboard shortcuts for the main editor actions.
 
 - Jump to Line
 - Quick Add
@@ -154,7 +154,7 @@ You can change these from the Keyboard Shortcuts dialog on the home screen.
 
 ## A Good Way To Work
 
-If you are just getting started, a good working pattern is:
+If you are just getting started, this is a good working pattern to follow.
 
 1. start a new file or open a template
 2. write or insert a few SVG elements
