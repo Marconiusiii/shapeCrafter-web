@@ -200,6 +200,7 @@ const elements = {
 	renderSoundToggle: document.getElementById("renderSoundToggle"),
 	autosaveToggle: document.getElementById("autosaveToggle"),
 	autosaveMinutesInput: document.getElementById("autosaveMinutesInput"),
+	editorSettingsDetails: document.getElementById("editorSettingsDetails"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -316,6 +317,7 @@ elements.closeFullscreenButton.addEventListener("click", closeFullscreenGraphic)
 elements.fileActionsButton.addEventListener("click", handleFileActionsButtonClick);
 elements.fileActionsButton.addEventListener("keydown", handleFileActionsButtonKeydown);
 elements.fileActionsMenu.addEventListener("keydown", handleFileActionsMenuKeydown);
+elements.editorSettingsDetails.addEventListener("toggle", syncEditorSettingsAvailability);
 elements.renameCurrentFileButton.addEventListener("click", () => {
 	if (state.currentFileId) {
 		renameFile(state.currentFileId);
@@ -539,6 +541,7 @@ syncAttributePromptToggles(elements.attributePromptToggle.checked);
 syncSettingsInputs();
 updateRenderButtonVisibility();
 syncRenderSoundAvailability();
+syncEditorSettingsAvailability();
 void initializeApp();
 
 async function initializeApp() {
@@ -656,6 +659,30 @@ function syncSettingsInputs() {
 
 function syncRenderSoundAvailability() {
 	elements.renderSoundToggle.disabled = elements.liveViewToggle.checked;
+}
+
+function syncEditorSettingsAvailability() {
+	const isOpen = elements.editorSettingsDetails.hasAttribute("open");
+	const controls = [
+		elements.liveViewToggle,
+		elements.renderDelayInput,
+		elements.renderSoundToggle,
+		elements.autosaveToggle,
+		elements.autosaveMinutesInput
+	];
+
+	controls.forEach((control) => {
+		if (isOpen) {
+			control.removeAttribute("disabled");
+			return;
+		}
+
+		control.setAttribute("disabled", "");
+	});
+
+	if (isOpen) {
+		syncSettingsInputs();
+	}
 }
 
 function initBrailleConverter() {
@@ -1812,21 +1839,22 @@ function handleFileActionsButtonClick() {
 }
 
 function handleFileActionsButtonKeydown(event) {
-	if (event.key === "Enter" || event.key === " ") {
-		event.preventDefault();
-		toggleFileActionsMenu();
-		return;
-	}
-
-	if (event.key === "ArrowDown") {
+	if (event.key === "ArrowDown" || event.key === "Down") {
 		event.preventDefault();
 		openFileActionsMenu("first");
 		return;
 	}
 
-	if (event.key === "ArrowUp") {
+	if (event.key === "ArrowUp" || event.key === "Up") {
 		event.preventDefault();
 		openFileActionsMenu("last");
+		return;
+	}
+
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault();
+		toggleFileActionsMenu();
+		return;
 	}
 }
 
