@@ -2143,11 +2143,18 @@ function printSvgDocument(source) {
 	const url = URL.createObjectURL(blob);
 	const iframe = document.createElement("iframe");
 	let cleanupTimeout = 0;
+	let hasRestoredFocus = false;
 
 	function cleanup() {
 		window.clearTimeout(cleanupTimeout);
 		URL.revokeObjectURL(url);
 		iframe.remove();
+		if (!hasRestoredFocus) {
+			hasRestoredFocus = true;
+			requestAnimationFrame(() => {
+				elements.fileActionsButton.focus();
+			});
+		}
 	}
 
 	iframe.title = "SVG print document";

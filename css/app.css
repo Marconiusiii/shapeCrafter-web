@@ -1,3 +1,15 @@
+@font-face {
+	font-family: "Braille29";
+	src: url("https://blindsvg.com/pages/projects/files/Braille29.ttf") format("truetype");
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Braille36_US";
+	src: url("https://blindsvg.com/pages/projects/files/Braille36_US.ttf") format("truetype");
+	font-display: swap;
+}
+
 html {
 	box-sizing: border-box;
 }
