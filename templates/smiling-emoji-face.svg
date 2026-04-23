@@ -1,11 +1,14 @@
-<svg viewBox="0 0 1024 1024" width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
-<title>smiling-emoji-face</title>
+<svg viewBox="0 0 1024 1024" width="700" height="700" xmlns="http://www.w3.org/2000/svg">
+<title>Smiling Emoji Face</title>
 
 <!-- Simple smiling face starter. -->
 
 <circle id="face" cx="512" cy="512" r="420" stroke="black" stroke-width="24" fill="oldLace" />
 <circle id="leftEye" cx="360" cy="410" r="48" fill="black" />
 <circle id="rightEye" cx="664" cy="410" r="48" fill="black" />
-<path id="smile" d="M 300 610 C 380 760 644 760 724 610" style="stroke: black; stroke-width: 28; fill: none;" />
+<path id="smile" d="
+	M 300, 610 
+	C 380, 760 644, 760 724, 610" 
+	style="stroke: black; stroke-width: 28; fill: none;" />
 
 </svg>

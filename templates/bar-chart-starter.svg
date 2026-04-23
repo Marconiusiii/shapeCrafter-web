@@ -1,5 +1,5 @@
 <svg viewBox="0 0 850 1100" width="850" height="1100" xmlns="http://www.w3.org/2000/svg">
-<title>bar-chart-starter</title>
+<title>Bar Chart Starter</title>
 
 <!-- Bar chart starter with simple axes and sample data. -->
 
@@ -14,9 +14,9 @@
 <rect id="barD" x="540" y="360" width="80" height="560" stroke="black" stroke-width="4" fill="oldLace" />
 
 <!-- Axis labels -->
-<text id="barALabel" x="190" y="980" font-size="32" fill="black">A</text>
-<text id="barBLabel" x="310" y="980" font-size="32" fill="black">B</text>
-<text id="barCLabel" x="430" y="980" font-size="32" fill="black">C</text>
-<text id="barDLabel" x="550" y="980" font-size="32" fill="black">D</text>
+<text id="barALabel" x="190" y="980" font-size="29pt" fill="black" font-family="Braille29">⠠⠁</text>
+<text id="barBLabel" x="310" y="980" font-size="29pt" fill="black" font-family="Braille29">⠠⠃</text>
+<text id="barCLabel" x="430" y="980" font-size="29pt" fill="black" font-family="Braille29">⠠⠉</text>
+<text id="barDLabel" x="550" y="980" font-size="29pt" fill="black" font-family="Braille29">⠠⠙</text>
 
 </svg>

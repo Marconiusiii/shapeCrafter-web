@@ -7,13 +7,13 @@ const MESSAGE_FADE_MS = 240;
 const AUTOSAVE_MINUTES_DEFAULT = 5;
 const TEMPLATE_MANIFEST_PATH = "templates/templates.json";
 const BRAILLE_TABLES = {
-	grade1: "unicode.dis,en-ueb-g1.ctb",
-	grade2: "unicode.dis,en-ueb-g2.ctb",
-	usGrade1: "unicode.dis,en-us-g1.ctb",
-	usGrade2: "unicode.dis,en-us-g2.ctb",
-	britishGrade1: "unicode.dis,en-gb-g1.utb",
-	britishGrade2: "unicode.dis,en-GB-g2.ctb",
-	usMath: "unicode.dis,en-us-mathtext.ctb"
+	grade1: "tables/unicode.dis,tables/en-ueb-g1.ctb",
+	grade2: "tables/unicode.dis,tables/en-ueb-g2.ctb",
+	usGrade1: "tables/unicode.dis,tables/en-us-g1.ctb",
+	usGrade2: "tables/unicode.dis,tables/en-us-g2.ctb",
+	britishGrade1: "tables/unicode.dis,tables/en-gb-g1.utb",
+	britishGrade2: "tables/unicode.dis,tables/en-GB-g2.ctb",
+	usMath: "tables/unicode.dis,tables/en-us-mathtext.ctb"
 };
 
 const SIZE_PRESETS = {
@@ -201,6 +201,7 @@ const elements = {
 	autosaveToggle: document.getElementById("autosaveToggle"),
 	autosaveMinutesInput: document.getElementById("autosaveMinutesInput"),
 	editorSettingsDetails: document.getElementById("editorSettingsDetails"),
+	editorSettingsBody: document.getElementById("editorSettingsBody"),
 	svgEditor: document.getElementById("svgEditor"),
 	statusMessage: document.getElementById("statusMessage"),
 	editorAnnouncer: document.getElementById("editorAnnouncer"),
@@ -663,22 +664,7 @@ function syncRenderSoundAvailability() {
 
 function syncEditorSettingsAvailability() {
 	const isOpen = elements.editorSettingsDetails.hasAttribute("open");
-	const controls = [
-		elements.liveViewToggle,
-		elements.renderDelayInput,
-		elements.renderSoundToggle,
-		elements.autosaveToggle,
-		elements.autosaveMinutesInput
-	];
-
-	controls.forEach((control) => {
-		if (isOpen) {
-			control.removeAttribute("disabled");
-			return;
-		}
-
-		control.setAttribute("disabled", "");
-	});
+	elements.editorSettingsBody.hidden = !isOpen;
 
 	if (isOpen) {
 		syncSettingsInputs();
@@ -706,7 +692,7 @@ function initBrailleConverter() {
 }
 
 function getPathFromOrigin(path) {
-	return new URL(path, window.location.href).pathname.replace(/^\/+/, "");
+	return new URL(path, window.location.href).href;
 }
 
 function setBrailleConverterReady(isReady) {
@@ -3012,12 +2998,19 @@ function translateToBraille(sourceText, grade) {
 
 	return new Promise((resolve, reject) => {
 		try {
-			state.brailleApi.translateString(table, sourceText, (result) => {
-				if (typeof result !== "string") {
-					reject(new Error("Braille conversion could not be completed."));
+			state.brailleApi.checkTable(table, (isValid) => {
+				if (!isValid) {
+					reject(new Error("The selected braille table could not be loaded."));
 					return;
 				}
-				resolve(result);
+
+				state.brailleApi.translateString(table, sourceText, (result) => {
+					if (typeof result !== "string") {
+						reject(new Error("Braille conversion could not be completed."));
+						return;
+					}
+					resolve(result);
+				});
 			});
 		} catch (error) {
 			reject(new Error("Braille conversion could not be completed."));
