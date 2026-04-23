@@ -48,15 +48,15 @@
 <section class="intro" id="homeView">
 <h1 id="homeHeading" tabindex="-1">shapeCrafter</h1>
 <details id="updatesDetails">
-<summary>Apr 20 Updates</summary>
+<summary>Apr 23 Updates</summary>
 <ul>
-<li>Fixed Print bug that would send out one blank sheet before the actual graphic would get printed/embossed.</li>
-<li>Fixed the Render Delay and Autosave inputs in Editor Settings so the values are visible and accessible, plus alterable with arrow keys.</li>
-<li>You can now start from a gallery of ready-made SVG templates for charts, grids, braille, layout mockups, and simple drawings. These show general file structure, but should be adjusted for final output.</li>
-<li>Note: SVG Gallery files are rough and will be updated as further improvements are added to shapeCrafter.</li>
-<li>The New File dialog now includes page size presets for common paper and canvas sizes, plus Custom sizing.</li>
-<li>Autosave, Save As, duplicate, and session-based revert tools make it easier to protect your work while you learn.</li>
-<li>The render view, export flow, braille tools, and mobile editing layout continue to work together in one editor screen.</li>
+<li>Print/Emboss fixed so it only prints the graphic in the editor, plus focus returns to the File Actions menu when the system print dialog closes.</li>
+<li>The starter gallerySVG files have been updated to follow the overall practices taught on BlindSVG. All text elements replaced with Braille29.</li>
+<li>New File now includes more page size choices, and the editor can autosave, save a copy, duplicate files, and revert back to the version you started from.</li>
+<li>The Braille Converter is working again with the available English tables, and its status messages now speak more reliably during repeated use.</li>
+<li>Braille29 and Braille36 US fonts are embedded in shapeCrafter, ensuring reliable braille output when adding braille into your drawings.</li>
+<li>Several Safari and VoiceOver fixes have been added to keep menus, settings, and other controls easier to move through.</li>
+<li>Render Delay and Autosave Interval now use visible number fields instead of sliders, making those settings easier to read and adjust.</li>
 </ul>
 </details>
 
@@ -462,7 +462,7 @@
 <button type="button" id="copyBrailleOutputButton">Copy Braille Unicode</button>
 </div>
 
-<p id="brailleConverterStatus" class="status-message" role="status"></p>
+<p id="brailleConverterStatus" class="status-message" role="alert" aria-live="assertive"></p>
 </div>
 </details>
 </div>
@@ -471,7 +471,7 @@
 </main>
 
 <footer class="site-footer">
-<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.4.0</p>
+<p>&copy;<span id="copyrightYear"></span> <a href="mailto:hello@blindsvg.com">Marco Salsiccia</a> v.1.4.1</p>
 </footer>
 
 <main id="fullscreenView" hidden inert aria-labelledby="fullscreenGraphicHeading">

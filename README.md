@@ -1,108 +1,168 @@
 # shapeCrafter Web
 
-shapeCrafter Web is a browser-based SVG editor for BlindSVG. It is built for people who want to learn, write, test, save, export, and print hand-coded SVG graphics directly in the browser without leaving the page.
+shapeCrafter Web is a browser-based SVG workspace built for BlindSVG. It gives you a place to write SVG code, render the result in the browser, save your files in the browser, export graphics, and print or emboss the finished output without leaving the page.
 
-## What shapeCrafter Web Does
+## What You Can Do Here
 
-shapeCrafter Web gives you a complete browser workflow for working with SVG:
+Use shapeCrafter to:
 
-- Start a new file with a filename, viewBox, width, and height
-- Start a new file from a gallery of ready-made templates
-- Choose a size preset for common paper and canvas formats
-- Generate the opening SVG structure automatically, including a title tag
-- Write SVG code in a full text editor
-- Insert SVG elements at the current cursor position
-- Use Quick Add to choose an SVG element from the keyboard without leaving the editor flow
-- Choose whether shape insertion happens instantly or through an attribute prompt
-- Render the SVG in the browser
-- Print or emboss only the SVG graphic from the editor workflow
-- Save files to this browser and reopen them later
-- Save files manually, autosave them while you work, or save a copy with Save As
-- Adjust Live View render delay and autosave timing with standard number inputs
-- Revert the current file back to the version that was loaded at the start of the session
-- Rename, duplicate, or delete saved files
-- Download SVG files directly to your computer
-- Export raster files as PNG, JPG, or WEBP
-- Choose raster export units in pixels, inches, centimeters, millimeters, points, or percent
-- Scale raster exports proportionately
-- Jump to a specific line in the editor
-- Remap editor shortcuts for Jump to Line, Quick Add, Tab Indent, and Tab Outdent
+- start a new SVG file from scratch
+- start from a ready-made template
+- write and edit SVG code directly in the browser
+- insert common SVG elements from the menu or Quick Add
+- render the drawing while you work
+- save files in the browser and reopen them later
+- download SVG files to your computer
+- export raster images
+- convert plain text into braille Unicode
+- print or emboss only the SVG graphic
 
-## Who It Is For
+## Starting A File
 
-shapeCrafter Web is designed for people actively learning from BlindSVG and building graphics as they go. It favors readable structure, keyboard use, screen reader support, and native HTML controls so the editor stays practical and dependable.
+From the home screen, choose New File if you want to start with a blank SVG document.
 
-## How To Use It
+The New File dialog lets you enter:
 
-1. Choose New File or Start File from Template.
-2. Enter a filename and choose a size preset, or pick a starter template.
-3. Write SVG code in the editor or insert shapes from the SVG Element Menu.
-4. Save your work manually or let Autosave keep it current in the browser.
-5. Use Render SVG to update the rendered image, or turn on Live View in Editor Settings.
-6. Use File Actions to print or emboss the graphic, save the SVG, export a raster file, save a copy, or revert the session.
+- a filename
+- a size preset
+- the viewBox
+- the width
+- the height
 
-## Current Features
+US Letter portrait is the default starting point, and shapeCrafter will build the opening SVG code for you, including the `<title>` element.
 
-- Single-page editor and render workflow
-- Starter template gallery with tactile and beginner-friendly SVG examples
-- Starter templates stored as separate SVG files with a small manifest for easier editing
-- New file dialog with starter SVG generation
-- Size presets for common paper and canvas formats
-- SVG Element Menu for quick shape insertion
-- Quick Add dialog opened by keyboard shortcut
-- Optional shape attribute dialog for guided insertion
-- Saved Files table with an open button plus per-file Rename, Duplicate, and Delete actions menus
-- Autosave with an adjustable save interval
-- Manual Render Sound with separate success and error feedback while Live View is off
-- Save As and session-based Revert actions in the editor
-- SVG Code Reference with element, styling, transform, gradient, advanced, and font guidance
-- Fonts Reference with browser-safe font suggestions and braille font downloads
-- Parser error reporting with line-aware feedback and Jump to Error
-- Customizable keyboard shortcuts
-- Visible save toast and screen reader save announcement
-- Light mode and system dark mode support
-- Print-only SVG output for embossing and tactile workflows
-- Raster export with output units, DPI, and proportional scaling
-- Custom File Actions action panel chosen over native HTML Popover because VoiceOver support on macOS and iOS was not reliable enough for this project
+If you want a head start, choose Start File from Template instead. The template gallery includes starter files for common tactile and learning projects, including graph paper, dot grids, braille text, charts, wireframes, a tactile clock face, and a simple emoji drawing.
 
-## SVG Reference Help Included In The Editor
+## Working In The SVG Code Editor
 
-The built-in SVG Code Reference includes help for:
+The SVG Code Editor is where you write and revise your drawing.
 
-- Rectangle, circle, ellipse, line, polyline, polygon, path, and text elements
-- Styling attributes such as stroke, stroke-width, fill, dash patterns, and joins
-- Transform attributes
-- Gradients
-- Advanced SVG topics such as groups, use, defs, clip paths, masks, ids, desc, and comments
-- Fonts, including common browser-safe font families and links to Braille29 and Braille36 US
-- Template starters for graph paper, dot grids, braille text, bar charts, line charts, layout wireframes, a tactile clock face, and a simple emoji face
+You can type your code directly, paste in SVG from elsewhere, or add elements from the SVG Element Menu. If the shape prompt option is on, shapeCrafter will ask for the attributes before adding the code. If it is off, the element is placed directly into the editor using starter values that match the overall BlindSVG teaching style.
 
-## Keyboard Workflow
+Quick Add gives you another way to insert elements without moving far from your editing flow. You can open it with its shortcut and choose the element you want from the list.
 
-shapeCrafter Web supports editable shortcuts for:
+Jump to Line lets you move directly to a specific line in the file. This is especially useful when you are working through a larger SVG or correcting an error.
+
+## Editor Settings
+
+Editor Settings gives you control over how the editor behaves while you work.
+
+Live View can be turned on if you want the render view to update automatically after you stop typing for a moment. If Live View is off, use Render SVG when you want to update the drawing yourself.
+
+Render Delay sets how long shapeCrafter waits before Live View updates the graphic.
+
+Autosave is on by default. When it is on, the current file is saved to the browser as you work. Autosave Interval lets you choose how often that save happens.
+
+Render Sound can be turned on if you want a short sound after pressing Render SVG while Live View is off. A successful render and a render error each have their own sound.
+
+## Render View
+
+Render View gives you the current browser rendering of your SVG code.
+
+You can leave it open while you work, collapse it when you want more room in the editor, or open the graphic in full screen when you want to inspect the drawing on its own.
+
+If Live View is on, the rendered image updates automatically after the delay you set in Editor Settings. If Live View is off, use the Render SVG button to refresh the drawing.
+
+## File Actions
+
+File Actions collects the main file commands into one place.
+
+From File Actions, you can:
+
+- save the current file
+- save a copy with Save As
+- download the SVG
+- print or emboss the graphic
+- export a raster image
+- revert the file back to the version that was loaded when the current session began
+- rename the file
+- delete the file
+
+If you use Print/Emboss, shapeCrafter sends only the SVG graphic to the browser print flow so the output stays focused on the drawing itself.
+
+## Saved Files
+
+Saved files appear on the home screen in the Saved Files table.
+
+Each file can be opened directly from the table. Every saved file also has its own actions menu with Rename, Duplicate, and Delete.
+
+Duplicate creates a new copy of the file and adds “copy” to the filename so you can branch your work without losing the original.
+
+## Exporting Raster Images
+
+Export Raster lets you convert the current SVG into a bitmap image.
+
+You can choose:
+
+- the file type
+- the output units
+- the width
+- the height
+- the DPI
+- whether the image should scale proportionately
+
+This makes it easier to prepare a version for sharing or reference while keeping the original SVG file intact.
+
+## Printing And Embossing
+
+shapeCrafter is built so the print flow stays focused on the SVG itself.
+
+When you choose Print/Emboss, the goal is to match the experience of opening the SVG file directly in the browser and printing from there. The browser should receive the SVG graphic alone rather than the surrounding editor interface.
+
+## SVG Code Reference
+
+The SVG Code Reference is built into the editor so you can keep working without leaving the page.
+
+It includes quick reference material for:
+
+- basic shapes
+- path commands
+- styling
+- transforms
+- gradients
+- advanced SVG structure
+- fonts
+
+This material is meant to stay practical and readable while you code.
+
+## Braille Converter
+
+The Braille Converter lets you enter text, choose a braille table, and convert the result into copyable braille Unicode.
+
+You can then place that braille directly into SVG text elements in your file.
+
+The available options include English braille tables for Unified English Braille, U.S. English, British English, and math output now supported in the app.
+
+## Fonts
+
+shapeCrafter includes a Fonts Reference inside the SVG Code Reference. This gives you a quick guide to common font families and how to write `font-family` values in SVG.
+
+Braille29 and Braille36 US are also provided as direct download links in the app, and those fonts are loaded into shapeCrafter so braille text can be used more reliably in browser-based SVG work.
+
+Braille29 should be used at `29pt`, and Braille36 US should be used at `36pt`.
+
+## Keyboard Shortcuts
+
+shapeCrafter includes editable keyboard shortcuts for:
 
 - Jump to Line
 - Quick Add
 - Tab Indent
 - Tab Outdent
 
-These shortcuts can be changed from the Keyboard Shortcuts dialog on the home screen.
+You can change these from the Keyboard Shortcuts dialog on the home screen.
 
-## Printing And Embossing
+## A Good Way To Work
 
-shapeCrafter Web is built so printing focuses on the rendered SVG itself. The goal is to make printing behave like opening the SVG directly in the browser and sending only the graphic to the printer or embosser.
+If you are just getting started, a good working pattern is:
 
-## Accessibility Goals
+1. start a new file or open a template
+2. write or insert a few SVG elements
+3. use Render SVG or Live View to check the drawing
+4. save the file in the browser as you go
+5. use the SVG Code Reference and Braille Converter when you need them
+6. print, emboss, download, or export when the file is ready
 
-shapeCrafter Web is being built with these priorities:
+## Ongoing Work
 
-- WCAG 2.2 AA conformance
-- true HTML5 structure
-- keyboard-first operation
-- blind-first interaction design
-- native controls before custom patterns
-- minimal ARIA, only where it adds needed clarity
-
-## Where This Is Going
-
-shapeCrafter Web is the starting point for a larger BlindSVG creation environment. More authoring support, SVG helpers, educational references, and export options will continue to grow from here.
+shapeCrafter is still growing. More templates, references, and authoring help will continue to be added as the project develops.

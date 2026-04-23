@@ -2930,7 +2930,15 @@ function showToast(message) {
 }
 
 function setBrailleConverterStatus(message, options = {}) {
-	setTimedMessage(elements.brailleConverterStatus, message, options);
+	clearTimedMessage(elements.brailleConverterStatus);
+
+	if (!message) {
+		return;
+	}
+
+	window.setTimeout(() => {
+		setTimedMessage(elements.brailleConverterStatus, message, options);
+	}, 40);
 }
 
 function clearTimedMessage(element) {
